@@ -8,3 +8,4 @@ gspread>=6.1,<7
 google-auth>=2.30,<3
 pydantic>=2.11,<3
 pydantic-settings>=2.6,<3
+a2wsgi>=1.10,<2

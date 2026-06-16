@@ -13,6 +13,7 @@ from config import PROJECT_ROOT, settings
 from integrations import sheets
 
 FRONTEND = PROJECT_ROOT / "frontend" / "index.html"
+LANDING  = PROJECT_ROOT / "frontend" / "landing.html"
 
 # Tracks running pipeline tasks so we can cancel them.
 _tasks: dict[int, asyncio.Task] = {}
@@ -53,6 +54,13 @@ def _slim_account(row: dict) -> dict:
 
 
 @app.get("/")
+async def landing():
+    if not LANDING.exists():
+        raise HTTPException(404, "frontend/landing.html not found")
+    return FileResponse(LANDING)
+
+
+@app.get("/dashboard")
 async def dashboard():
     if not FRONTEND.exists():
         raise HTTPException(404, "frontend/index.html not found")

@@ -1,2945 +1,1353 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html class="light" lang="en">
 <head>
-<meta charset="utf-8" />
-<title>BDR Agent · Orchestration</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>InsightEngine | AI Account Researcher</title>
+<!-- Firebase auth + plan guard -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>
+(function() {
+  var cfg = {
+    apiKey:            "AIzaSyCKANkXQf5km5Us-0jSjT0L04OrFfyDkvc",
+    authDomain:        "business-in-a-box-e58fc.firebaseapp.com",
+    projectId:         "business-in-a-box-e58fc",
+    storageBucket:     "business-in-a-box-e58fc.firebasestorage.app",
+    messagingSenderId: "888886932660",
+    appId:             "1:888886932660:web:cb8c43e848858ed48853e1"
+  };
+  firebase.initializeApp(cfg);
+  window._fbAuth = firebase.auth();
+  var _db = firebase.firestore();
+
+  window._fbAuth.onAuthStateChanged(function(user) {
+    if (!user) {
+      window.location.replace('/');
+      return;
+    }
+    // Check paid plan before allowing dashboard access
+    _db.collection('users').doc(user.uid).get().then(function(snap) {
+      var plan = snap.exists ? snap.data().plan : null;
+      if (plan !== 'pro' && plan !== 'scale') {
+        window.location.replace('/?upgrade=1');
+        return;
+      }
+      // Authorised — show the dashboard
+      window._currentUser = user;
+      document.getElementById('_authGuard').style.display = 'none';
+      var initials = (user.displayName || user.email || '?')
+        .split(' ').slice(0,2).map(function(w){ return w[0]||''; }).join('').toUpperCase() || '?';
+      var av = document.getElementById('headerAvatar');
+      if (av) av.textContent = initials;
+      var nm = document.getElementById('headerUserName');
+      if (nm) nm.textContent = user.displayName || user.email;
+    }).catch(function(e) {
+      console.error('[Auth guard] Firestore plan check failed', e);
+      window.location.replace('/?upgrade=1');
+    });
+  });
+})();
+</script>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "outline-variant": "#c6c6cd",
+        "surface-container-highest": "#d3e4fe",
+        "on-tertiary-fixed": "#191c1e",
+        "on-surface": "#0b1c30",
+        "error": "#ba1a1a",
+        "primary-container": "#131b2e",
+        "on-primary-fixed": "#131b2e",
+        "secondary-container": "#6063ee",
+        "surface-tint": "#565e74",
+        "surface": "#f8f9ff",
+        "tertiary-fixed": "#e0e3e5",
+        "outline": "#76777d",
+        "surface-container-low": "#eff4ff",
+        "on-primary-container": "#7c839b",
+        "on-primary": "#ffffff",
+        "on-primary-fixed-variant": "#3f465c",
+        "primary": "#000000",
+        "tertiary": "#000000",
+        "on-secondary": "#ffffff",
+        "on-background": "#0b1c30",
+        "surface-container-high": "#dce9ff",
+        "tertiary-container": "#191c1e",
+        "primary-fixed-dim": "#bec6e0",
+        "inverse-primary": "#bec6e0",
+        "primary-fixed": "#dae2fd",
+        "error-container": "#ffdad6",
+        "surface-bright": "#f8f9ff",
+        "on-error": "#ffffff",
+        "on-error-container": "#93000a",
+        "surface-variant": "#d3e4fe",
+        "surface-container": "#e5eeff",
+        "surface-container-lowest": "#ffffff",
+        "on-secondary-fixed-variant": "#2f2ebe",
+        "on-tertiary-fixed-variant": "#444749",
+        "on-secondary-container": "#fffbff",
+        "inverse-on-surface": "#eaf1ff",
+        "secondary": "#4648d4",
+        "tertiary-fixed-dim": "#c4c7c9",
+        "on-tertiary": "#ffffff",
+        "secondary-fixed": "#e1e0ff",
+        "surface-dim": "#cbdbf5",
+        "on-tertiary-container": "#818486",
+        "inverse-surface": "#213145",
+        "secondary-fixed-dim": "#c0c1ff",
+        "on-surface-variant": "#45464d",
+        "background": "#f8f9ff",
+        "on-secondary-fixed": "#07006c"
+      },
+      borderRadius: {
+        DEFAULT: "2px", lg: "4px", xl: "8px", "2xl": "12px", full: "9999px"
+      },
+      spacing: {
+        xl: "32px", "margin-mobile": "16px", base: "4px",
+        gutter: "20px", lg: "24px", sm: "8px", md: "16px",
+        xs: "4px", "margin-desktop": "40px"
+      },
+      fontFamily: {
+        sans: ["Inter", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"]
+      }
+    }
+  }
+}
+</script>
 <style>
-  :root {
-    /* SURFACE — deep, neutral, with warmth */
-    --bg:         #07070a;
-    --bg-2:       #0b0b10;
-    --bg-3:       #101018;
-    --surface:    rgba(20, 20, 28, 0.55);
-    --surface-2:  rgba(28, 28, 38, 0.50);
-    --surface-3:  rgba(36, 36, 48, 0.50);
-    --surface-solid: #14141c;
-
-    /* BORDERS */
-    --border:        rgba(255, 255, 255, 0.06);
-    --border-2:      rgba(255, 255, 255, 0.10);
-    --border-strong: rgba(255, 255, 255, 0.16);
-
-    /* TEXT */
-    --text:      #fafafa;
-    --text-mut:  #a1a1aa;
-    --text-dim:  #71717a;
-    --text-faint:#52525b;
-
-    /* ACCENTS — electric indigo / violet */
-    --accent:        #818cf8;
-    --accent-2:      #6366f1;
-    --accent-3:      #a78bfa;
-    --accent-glow:   rgba(129, 140, 248, 0.45);
-    --accent-bg:     rgba(99, 102, 241, 0.12);
-    --accent-soft:   rgba(99, 102, 241, 0.06);
-    --accent-border: rgba(129, 140, 248, 0.30);
-
-    /* DONE — emerald */
-    --done:        #34d399;
-    --done-glow:   rgba(52, 211, 153, 0.40);
-    --done-bg:     rgba(52, 211, 153, 0.12);
-    --done-soft:   rgba(52, 211, 153, 0.05);
-    --done-border: rgba(52, 211, 153, 0.30);
-
-    /* WARN — amber */
-    --warn:    #fbbf24;
-    --warn-bg: rgba(251, 191, 36, 0.12);
-
-    /* ERROR — coral */
-    --error:        #fb7185;
-    --error-bg:     rgba(251, 113, 133, 0.12);
-    --error-border: rgba(251, 113, 133, 0.30);
-
-    --shadow-glow: 0 0 0 1px rgba(255,255,255,0.04), 0 12px 32px -8px rgba(0,0,0,0.6);
+  body { font-family: 'Inter', sans-serif; }
+  .glass-intelligence {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(70,72,212,0.2);
+    border-left: 4px solid #4648d4;
   }
-
-  * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-
-  html, body {
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-  body {
-    font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Inter", "Segoe UI", sans-serif;
-    font-feature-settings: "cv02", "cv11", "ss01", "ss03";
-    position: relative;
-  }
-
-  /* AMBIENT BACKGROUND — grid + soft glow blobs */
-  body::before {
-    content: "";
-    position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
-    background-size: 48px 48px;
-    background-position: -1px -1px;
-    pointer-events: none;
-    z-index: 0;
-    mask-image: radial-gradient(ellipse 110% 80% at 50% 0%, black 30%, transparent 80%);
-  }
-  body::after {
-    content: "";
-    position: fixed; inset: 0;
-    background:
-      radial-gradient(900px circle at 12% -10%, rgba(99, 102, 241, 0.18), transparent 55%),
-      radial-gradient(800px circle at 88% -10%, rgba(52, 211, 153, 0.10), transparent 55%),
-      radial-gradient(1100px circle at 50% 110%, rgba(167, 139, 250, 0.10), transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-  }
-  main, header { position: relative; z-index: 1; }
-
-  .mono { font-family: "Geist Mono", ui-monospace, SFMono-Regular, Consolas, monospace; }
-  .tnum { font-variant-numeric: tabular-nums; }
-
-  /* SCROLLBARS */
-  .scroll-area::-webkit-scrollbar { width: 8px; height: 8px; }
-  .scroll-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
-  .scroll-area::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
-  .scroll-area::-webkit-scrollbar-track { background: transparent; }
-
-  /* GLASS CARDS */
-  .card {
-    background: var(--surface);
-    backdrop-filter: blur(14px) saturate(140%);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: var(--shadow-glow);
-    position: relative;
-  }
-  .card::before {
-    content: "";
-    position: absolute; inset: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.0) 30%);
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude;
-    pointer-events: none;
-  }
-  .card-flat {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-  }
-
-  /* BREATHE — only on running indicator dots */
-  @keyframes breathe {
-    0%, 100% { opacity: 0.45; }
-    50%      { opacity: 1; }
-  }
-  .breathe { animation: breathe 2.2s ease-in-out infinite; }
-
-  @keyframes glowPulse {
-    0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
-    50%      { box-shadow: 0 0 0 6px transparent; }
-  }
-  .glow-pulse { animation: glowPulse 2.4s ease-in-out infinite; }
-
-  /* SOFT FLOW for SVG edges */
-  @keyframes flowDash { to { stroke-dashoffset: -28; } }
-  .edge-active { animation: flowDash 1.8s linear infinite; }
-
-  /* APPEAR */
-  @keyframes appear {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .appear { animation: appear 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-  /* LIVE DOT — header heartbeat */
-  @keyframes liveDot {
-    0%, 100% { transform: scale(1);   opacity: 1; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6); }
-    50%      { transform: scale(1.1); opacity: 0.9; box-shadow: 0 0 0 5px rgba(52, 211, 153, 0); }
-  }
-  .live-dot { animation: liveDot 1.8s ease-in-out infinite; }
-
-  /* SMOOTH transitions */
-  rect, circle, path, text {
-    transition: fill 0.45s ease, stroke 0.45s ease, opacity 0.45s ease, stroke-dasharray 0.3s ease;
-  }
-  .acct-row, .agent-chip, .pill, .mini-dot, .indicator, .input, button {
-    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease,
-                box-shadow 0.25s ease, transform 0.2s ease;
-  }
-
-  /* TABS */
+  .insight-card { border-left: 4px solid #4648d4; transition: transform 0.15s ease; }
+  .insight-card:hover { transform: translateX(3px); }
+  .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  @keyframes marquee { 0% { transform:translateX(0); } 100% { transform:translateX(-50%); } }
+  @keyframes scan { 0% { transform:translateY(-100%); } 100% { transform:translateY(100%); } }
+  .scan-anim { animation: scan 3s linear infinite; }
   .tab-btn {
-    color: var(--text-dim); border-bottom: 1.5px solid transparent;
-    padding: 14px 16px; font-size: 12.5px; font-weight: 500;
-    letter-spacing: -0.005em; position: relative;
-  }
-  .tab-btn:hover { color: var(--text); }
-  .tab-btn.active {
-    color: var(--text);
-    border-bottom-color: var(--accent);
-    font-weight: 600;
-  }
-  .tab-btn.active::after {
-    content: ""; position: absolute; left: 16px; right: 16px; bottom: -1.5px;
-    height: 1.5px; background: var(--accent);
-    box-shadow: 0 0 12px var(--accent-glow);
-  }
-
-  /* INDICATOR DOTS */
-  .indicator { width: 6px; height: 6px; border-radius: 9999px; display: inline-block; }
-  .ind-pending { background: rgba(255,255,255,0.18); }
-  .ind-running { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
-  .ind-done    { background: var(--done);   box-shadow: 0 0 8px var(--done-glow); }
-  .ind-skipped { background: rgba(255,255,255,0.10); }
-  .ind-error   { background: var(--error); box-shadow: 0 0 8px rgba(251,113,133,0.5); }
-
-  /* MINI PIPELINE DOTS */
-  .mini-dot {
-    width: 7px; height: 7px; border-radius: 9999px; display: inline-block;
-    background: rgba(255,255,255,0.10);
-  }
-  .mini-dot.s-running { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
-  .mini-dot.s-done    { background: var(--done);   box-shadow: 0 0 6px var(--done-glow); }
-  .mini-dot.s-error   { background: var(--error); }
-  .mini-dot.s-skipped { background: rgba(255,255,255,0.06); }
-
-  /* SIDEBAR ACCOUNT ROW */
-  .acct-row {
-    cursor: pointer; padding: 14px 16px;
-    border-left: 2px solid transparent;
-    position: relative;
-  }
-  .acct-row:hover { background: rgba(255,255,255,0.025); }
-  .acct-row.selected {
-    background: linear-gradient(90deg, var(--accent-bg), transparent 80%);
-    border-left-color: var(--accent);
-  }
-  .acct-row.s-running { border-left-color: var(--accent); }
-  .acct-row.s-enriched { border-left-color: var(--done); }
-  .acct-row.s-dropped { border-left-color: var(--text-faint); }
-  .acct-row.s-error   { border-left-color: var(--error); }
-
-  /* PILLS */
-  .pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em;
-    padding: 4px 10px; border-radius: 9999px; line-height: 1.2;
-    text-transform: capitalize;
-    border: 1px solid transparent;
-  }
-  .pill-idle, .pill-pending, .pill-cancelled, .pill-dropped {
-    background: rgba(255,255,255,0.04); color: var(--text-mut);
-    border-color: rgba(255,255,255,0.08);
-  }
-  .pill-running {
-    background: var(--accent-bg); color: var(--accent);
-    border-color: var(--accent-border);
-  }
-  .pill-enriched, .pill-completed {
-    background: var(--done-bg); color: var(--done);
-    border-color: var(--done-border);
-  }
-  .pill-error {
-    background: var(--error-bg); color: var(--error);
-    border-color: var(--error-border);
-  }
-
-  /* BUTTONS */
-  .btn-primary {
-    background: linear-gradient(180deg, #4f46e5, #4338ca);
-    color: white; padding: 11px 20px;
-    border-radius: 10px; font-size: 13px; font-weight: 600;
-    letter-spacing: -0.005em;
-    box-shadow:
-      0 0 0 1px rgba(255,255,255,0.10) inset,
-      0 0 24px -6px var(--accent-glow),
-      0 1px 0 rgba(255,255,255,0.10) inset;
-  }
-  .btn-primary:hover {
-    background: linear-gradient(180deg, #6366f1, #4f46e5);
-    box-shadow:
-      0 0 0 1px rgba(255,255,255,0.14) inset,
-      0 0 36px -4px var(--accent-glow),
-      0 1px 0 rgba(255,255,255,0.10) inset;
-    transform: translateY(-1px);
-  }
-  .btn-secondary {
-    background: rgba(255,255,255,0.03); color: var(--text);
-    border: 1px solid var(--border-2);
-    padding: 11px 18px; border-radius: 10px;
-    font-size: 13px; font-weight: 500;
-  }
-  .btn-secondary:hover {
-    background: rgba(255,255,255,0.06);
-    border-color: var(--border-strong);
-  }
-  .btn-ghost {
-    color: var(--error); padding: 7px 12px; border-radius: 8px;
-    font-size: 12px; font-weight: 600;
-    border: 1px solid transparent;
-  }
-  .btn-ghost:hover {
-    background: var(--error-bg);
-    border-color: var(--error-border);
-  }
-
-  /* INPUTS */
-  .input {
-    width: 100%; padding: 12px 14px; font-size: 13.5px;
-    background: rgba(255,255,255,0.025);
-    border: 1px solid var(--border-2);
-    border-radius: 10px; color: var(--text);
-  }
-  .input::placeholder { color: var(--text-faint); }
-  .input:focus {
-    outline: none; border-color: var(--accent-border);
-    background: rgba(255,255,255,0.04);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-
-  /* EYEBROW */
-  .eyebrow {
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em;
-    color: var(--text-faint); text-transform: uppercase;
-  }
-
-  /* AGENT CHIP */
-  .agent-chip {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 12px; padding: 13px;
-    position: relative; overflow: hidden;
-  }
-  .agent-chip::after {
-    content: ""; position: absolute; inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 30%);
-    pointer-events: none;
-  }
-  .agent-chip.active {
-    border-color: var(--accent-border);
-    background: linear-gradient(180deg, var(--accent-bg), var(--surface-2));
-    box-shadow:
-      0 0 0 1px var(--accent-border) inset,
-      0 0 24px -8px var(--accent-glow);
-  }
-  .agent-chip.done {
-    border-color: var(--done-border);
-    background: linear-gradient(180deg, var(--done-bg), var(--surface-2));
-  }
-  .agent-chip .codename {
-    font-weight: 600; font-size: 13px; color: var(--text);
-    letter-spacing: -0.01em;
-  }
-  .agent-chip .role {
-    font-size: 11px; color: var(--text-mut); margin-top: 2px; line-height: 1.4;
-  }
-  .agent-chip .count {
-    font-size: 10.5px; color: var(--text-dim); margin-top: 10px;
-    font-variant-numeric: tabular-nums; font-weight: 500;
-    padding-top: 10px; border-top: 1px solid var(--border);
-  }
-  .agent-chip .count b { color: var(--text); font-weight: 600; }
-
-  /* AGENT AVATAR — gradient sphere */
-  .agent-avatar {
-    width: 28px; height: 28px; border-radius: 8px;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-family: "Geist Mono", monospace; font-weight: 600;
-    font-size: 11px; color: white;
-    background: linear-gradient(135deg, var(--c1, #6366f1), var(--c2, #a78bfa));
-    box-shadow: 0 4px 12px -4px rgba(0,0,0,0.4),
-                inset 0 1px 0 rgba(255,255,255,0.15);
-    flex-shrink: 0;
-  }
-  .agent-chip.active .agent-avatar {
-    box-shadow: 0 4px 12px -4px rgba(0,0,0,0.4),
-                inset 0 1px 0 rgba(255,255,255,0.15),
-                0 0 0 2px rgba(255,255,255,0.06),
-                0 0 16px var(--accent-glow);
-  }
-
-  /* ============== CREW GRID — live agent cards ============== */
-  .crew-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-  /* sizes against the surrounding detail card, not the viewport */
-  .detail-card { container-type: inline-size; container-name: detail; }
-  @container detail (min-width: 460px) { .crew-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  @container detail (min-width: 680px) { .crew-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-  @container detail (min-width: 880px) { .crew-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
-
-  .crew-card {
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 13px;
-    padding: 12px 13px 11px;
-    overflow: hidden;
-    min-height: 122px;
-    display: flex; flex-direction: column;
-    backdrop-filter: blur(10px);
-  }
-  .crew-card::before {
-    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, var(--c1, transparent), var(--c2, transparent));
-    opacity: 0.25;
-  }
-  .crew-card.s-running {
-    border-color: var(--accent-border);
-    background: linear-gradient(180deg, var(--accent-bg), var(--surface));
-    box-shadow:
-      0 0 0 1px var(--accent-border) inset,
-      0 0 28px -10px var(--accent-glow);
-  }
-  .crew-card.s-running::before { opacity: 1; height: 2px; }
-  .crew-card.s-running::after {
-    content: ""; position: absolute; top: 0; left: 0; height: 2px; width: 40%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent);
-    animation: shimmerSlide 1.8s ease-in-out infinite;
-  }
-  .crew-card.s-done {
-    border-color: var(--done-border);
-    background: linear-gradient(180deg, var(--done-bg), var(--surface));
-  }
-  .crew-card.s-done::before { opacity: 0.7; background: linear-gradient(90deg, var(--done), var(--done)); }
-  .crew-card.s-error {
-    border-color: var(--error-border);
-    background: linear-gradient(180deg, var(--error-bg), var(--surface));
-  }
-  .crew-card.s-skipped { opacity: 0.45; border-style: dashed; }
-
-  .crew-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
-  .crew-avatar {
-    width: 32px; height: 32px; border-radius: 9px;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-family: "Geist Mono", monospace; font-weight: 700;
-    font-size: 11px; color: white; letter-spacing: 0.02em;
-    flex-shrink: 0;
-    box-shadow: 0 4px 14px -4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.18);
-  }
-  .crew-card.s-running .crew-avatar {
-    box-shadow: 0 4px 14px -4px rgba(0,0,0,0.5),
-                inset 0 1px 0 rgba(255,255,255,0.18),
-                0 0 0 2px rgba(255,255,255,0.06),
-                0 0 18px var(--accent-glow);
-  }
-  .crew-name { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; color: var(--text); }
-  .crew-role { font-size: 10.5px; color: var(--text-dim); margin-top: 1px; line-height: 1.4; }
-  .crew-status-dot {
-    width: 7px; height: 7px; border-radius: 9999px;
-    background: rgba(255,255,255,0.18);
-    flex-shrink: 0; margin-top: 6px;
-  }
-  .crew-card.s-running .crew-status-dot { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); animation: breathe 2.2s ease-in-out infinite; }
-  .crew-card.s-done    .crew-status-dot { background: var(--done);   box-shadow: 0 0 8px var(--done-glow); }
-  .crew-card.s-error   .crew-status-dot { background: var(--error);  box-shadow: 0 0 8px rgba(251,113,133,0.5); }
-
-  .crew-saying {
-    font-family: "Geist Mono", monospace;
-    font-size: 10.5px;
-    color: var(--text-faint);
-    margin-top: auto;
-    padding-top: 9px;
-    border-top: 1px dashed var(--border);
-    letter-spacing: 0.01em;
-    line-height: 1.4;
-    min-height: 28px;
-  }
-  .crew-card.s-running .crew-saying { color: var(--accent); }
-  .crew-card.s-done    .crew-saying { color: var(--done); }
-  .crew-card.s-error   .crew-saying { color: var(--error); }
-
-  .crew-saying-cursor {
-    display: inline-block; width: 6px; height: 10px;
-    background: currentColor; margin-left: 3px;
-    vertical-align: middle; opacity: 0.7;
-    animation: blink 1s steps(2) infinite;
-  }
-  @keyframes blink { 50% { opacity: 0; } }
-
-  .crew-retry-badge {
-    position: absolute; top: 10px; right: 10px;
-    font-size: 9px; padding: 2px 6px; border-radius: 4px;
-    background: var(--warn-bg); color: var(--warn);
-    border: 1px solid rgba(251,191,36,0.30);
-    font-family: "Geist Mono", monospace; letter-spacing: 0.04em;
-    z-index: 2;
-  }
-  .crew-retry-badge.done {
-    background: var(--done-bg); color: var(--done);
-    border-color: var(--done-border);
-  }
-
-  /* shimmer keyframe (also used on top stripe) */
-  @keyframes shimmerSlide {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(250%); }
-  }
-
-  /* ============== FLOW BREADCRUMB (under the crew) ============== */
-  .crew-flow {
-    display: flex; align-items: center; flex-wrap: wrap; gap: 7px;
-    margin-top: 14px; padding-top: 12px;
-    border-top: 1px solid var(--border);
-    font-family: "Geist Mono", monospace; font-size: 10px;
-    letter-spacing: 0.04em;
-  }
-  .crew-flow .step { color: var(--text-faint); transition: color 0.4s; }
-  .crew-flow .step.s-running { color: var(--accent); text-shadow: 0 0 8px var(--accent-glow); }
-  .crew-flow .step.s-done    { color: var(--done); }
-  .crew-flow .step.s-error   { color: var(--error); }
-  .crew-flow .sep { color: var(--text-faint); opacity: 0.5; }
-
-  /* ============== CHAT-BUBBLE LOG ============== */
-  .log-list { display: flex; flex-direction: column; gap: 12px; }
-  .log-entry { display: flex; gap: 11px; }
-  .log-avatar {
-    width: 30px; height: 30px; border-radius: 8px;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-family: "Geist Mono", monospace; font-weight: 700;
-    font-size: 10.5px; color: white; letter-spacing: 0.02em;
-    flex-shrink: 0;
-    box-shadow: 0 4px 12px -4px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.18);
-  }
-  .log-meta {
-    display: flex; align-items: baseline; gap: 8px;
-    margin-bottom: 4px;
-  }
-  .log-name { font-size: 12px; font-weight: 600; color: var(--text); letter-spacing: -0.005em; }
-  .log-time { font-family: "Geist Mono", monospace; font-size: 10px; color: var(--text-faint); }
-  .log-bubble {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 11px;
-    border-top-left-radius: 3px;
-    padding: 9px 13px;
-    font-size: 13px; line-height: 1.55;
-    color: var(--text);
-    display: inline-block;
-    max-width: 100%;
-    word-wrap: break-word; white-space: pre-wrap;
-  }
-  .log-bubble.error {
-    background: var(--error-bg);
-    border-color: var(--error-border);
-    color: var(--error);
-  }
-
-  /* TYPOGRAPHY */
-  .heading-sm { font-size: 15px; font-weight: 600; letter-spacing: -0.015em; color: var(--text); }
-  .heading-md { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; color: var(--text); }
-  .heading-lg {
-    font-size: 26px; font-weight: 600; letter-spacing: -0.03em;
-    background: linear-gradient(180deg, #fafafa, #a1a1aa);
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  /* CODE BLOCKS */
-  pre.code-block {
-    background: #08080c;
-    color: #e4e4e7;
-    border: 1px solid var(--border);
-    font-family: "Geist Mono", ui-monospace, monospace;
-    font-size: 11.5px; padding: 13px 15px; border-radius: 10px;
-    overflow-x: auto; white-space: pre-wrap; line-height: 1.6;
-  }
-
-  /* EMPTY STATE */
-  .empty {
-    text-align: center; padding: 48px 16px; color: var(--text-faint);
-    font-size: 13px;
-  }
-  .empty::before {
-    content: "·";
-    display: block; font-size: 24px; color: var(--text-faint);
-    margin-bottom: 8px; line-height: 1;
-  }
-
-  /* HEADER METRIC CHIP */
-  .stat-chip {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 6px 11px; border-radius: 8px;
-    background: rgba(255,255,255,0.025);
-    border: 1px solid var(--border);
-    font-size: 11.5px; color: var(--text-mut);
-  }
-  .stat-chip .stat-label { color: var(--text-faint); font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; }
-  .stat-chip .stat-val { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
-
-  /* SEGMENTED PROGRESS BAR */
-  .prog-track {
-    background: rgba(255,255,255,0.04);
-    border-radius: 9999px;
-    overflow: hidden;
-    height: 4px;
-    border: 1px solid var(--border);
-  }
-  .prog-bar {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent-2), var(--accent-3));
-    box-shadow: 0 0 16px var(--accent-glow);
-    transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  /* SECTION DIVIDER LINE */
-  .hairline { height: 1px; background: linear-gradient(90deg, transparent, var(--border-2), transparent); }
-
-  /* SUBTLE SHIMMER ON ACTIVE ITEMS */
-  @keyframes shimmerSlide {
-    from { transform: translateX(-100%); }
-    to   { transform: translateX(100%); }
-  }
-
-  /* ====================================================== */
-  /* ============== AGENT OUTPUT — PREMIUM ================ */
-  /* ====================================================== */
-
-  /* DOCUMENT WRAPPER — feels like a real briefing */
-  .doc { display: flex; flex-direction: column; gap: 18px; }
-  .doc + .doc { margin-top: 28px; padding-top: 28px; border-top: 1px dashed var(--border-2); }
-
-  .doc-hero {
-    padding: 22px 24px;
-    background:
-      linear-gradient(135deg, rgba(99,102,241,0.10), rgba(167,139,250,0.04) 60%, transparent),
-      var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    position: relative;
-    overflow: hidden;
-  }
-  .doc-hero::before {
-    content: "";
-    position: absolute; inset: 0;
-    background: radial-gradient(600px circle at 90% -20%, rgba(167,139,250,0.16), transparent 50%);
-    pointer-events: none;
-  }
-  .doc-hero .eyebrow-tag {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-family: "Geist Mono", monospace; font-size: 10.5px;
-    font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--accent);
-    background: var(--accent-bg); border: 1px solid var(--accent-border);
-    padding: 4px 10px; border-radius: 999px;
-    position: relative; z-index: 1;
-  }
-  .doc-hero h1 {
-    font-size: 22px; font-weight: 600; line-height: 1.3;
-    letter-spacing: -0.02em; margin-top: 14px;
-    background: linear-gradient(180deg, #fafafa, #c4c4cb);
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-    position: relative; z-index: 1;
-  }
-
-  /* PULL QUOTE — key insights */
-  .pull-quote {
-    position: relative;
-    padding: 14px 18px 14px 42px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-left: 2px solid var(--accent);
-    border-radius: 0 12px 12px 0;
-    font-size: 13.5px; line-height: 1.6;
-    color: var(--text);
-  }
-  .pull-quote::before {
-    content: "\201C";
-    position: absolute; top: 2px; left: 14px;
-    font-size: 34px; font-family: Georgia, serif;
-    color: var(--accent); opacity: 0.55; line-height: 1;
-  }
-
-  /* SECTION GRID */
-  .sec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  @media (max-width: 700px) { .sec-grid { grid-template-columns: 1fr; } }
-
-  /* SECTION TILE — labeled list */
-  .sec-tile {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 16px;
-  }
-  .sec-tile .sec-head {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--text-dim);
-    margin-bottom: 10px;
-  }
-  .sec-tile .sec-head .ico {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 20px; height: 20px; border-radius: 6px;
-    background: var(--accent-bg); color: var(--accent);
-    border: 1px solid var(--accent-border);
-  }
-  .sec-tile ul.bul {
-    list-style: none; padding: 0; margin: 0;
-    display: flex; flex-direction: column; gap: 7px;
-  }
-  .sec-tile ul.bul li {
-    display: flex; gap: 9px;
-    font-size: 13px; line-height: 1.5; color: var(--text);
-  }
-  .sec-tile ul.bul li::before {
-    content: "";
-    flex-shrink: 0; width: 4px; height: 4px;
-    border-radius: 999px; background: var(--accent);
-    margin-top: 8px;
-  }
-  .empty-inline {
-    font-size: 12.5px; color: var(--text-faint); font-style: italic;
-  }
-
-  /* WEDGE / USE CASE CARD */
-  .wedge-list { display: flex; flex-direction: column; gap: 10px; }
-  .wedge-card {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 16px;
-    display: grid; grid-template-columns: 28px 1fr; gap: 12px;
-  }
-  .wedge-card .num {
-    width: 28px; height: 28px; border-radius: 7px;
-    font-family: "Geist Mono", monospace; font-size: 11px; font-weight: 700;
-    color: var(--accent);
-    background: var(--accent-bg);
-    border: 1px solid var(--accent-border);
-    display: inline-flex; align-items: center; justify-content: center;
-  }
-  .wedge-card .title { font-size: 13.5px; font-weight: 600; color: var(--text); letter-spacing: -0.005em; }
-  .wedge-card .sub { font-size: 12.5px; color: var(--text-mut); margin-top: 4px; line-height: 1.5; }
-
-  /* KPI / SIGNAL TILE */
-  .kpi-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  @media (max-width: 540px) { .kpi-row { grid-template-columns: 1fr; } }
-  .kpi-card {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 11px;
-    padding: 12px 14px;
-  }
-  .kpi-card .lbl {
-    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--text-faint);
-    display: flex; align-items: center; gap: 6px;
-  }
-  .kpi-card .val {
-    font-size: 13.5px; color: var(--text); margin-top: 6px; line-height: 1.45;
-  }
-  .kpi-card.empty .val { color: var(--text-faint); font-style: italic; }
-  .kpi-card.flag {
-    background: linear-gradient(180deg, var(--accent-bg), var(--surface-2));
-    border-color: var(--accent-border);
-  }
-
-  /* CHIP — tags, roles, titles */
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip-tag {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 10px; border-radius: 999px;
-    background: var(--surface-3);
-    border: 1px solid var(--border-2);
-    font-size: 11.5px; color: var(--text);
-    font-family: "Geist Mono", monospace; letter-spacing: -0.005em;
-  }
-  .chip-tag.accent {
-    background: var(--accent-bg); color: var(--accent);
-    border-color: var(--accent-border);
-  }
-  .chip-tag.done {
-    background: var(--done-bg); color: var(--done);
-    border-color: var(--done-border);
-  }
-
-  /* SOURCE LINK */
-  .src-list { display: flex; flex-direction: column; gap: 6px; }
-  .src-link {
-    display: flex; align-items: center; gap: 10px;
-    padding: 9px 11px; border-radius: 9px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    font-size: 11.5px;
-    color: var(--text-mut);
-    font-family: "Geist Mono", monospace;
-    text-decoration: none;
-    word-break: break-all;
-    transition: background 0.2s, color 0.2s, border-color 0.2s;
-  }
-  .src-link:hover { background: var(--surface-3); color: var(--text); border-color: var(--border-strong); }
-  .src-link .num {
-    flex-shrink: 0; width: 20px; height: 20px;
-    font-size: 10px; font-weight: 700;
-    background: var(--accent-bg); color: var(--accent);
-    border-radius: 6px;
-    display: inline-flex; align-items: center; justify-content: center;
-  }
-  .src-link .ext {
-    margin-left: auto; flex-shrink: 0;
-    color: var(--text-faint);
-  }
-
-  /* EVALUATION CARD + SCORE RING */
-  .eval-card {
-    background: linear-gradient(180deg, var(--surface), var(--surface-2));
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 18px 20px;
-  }
-  .eval-head { display: flex; align-items: center; gap: 18px; }
-  .score-ring {
-    position: relative;
-    width: 78px; height: 78px;
-    flex-shrink: 0;
-  }
-  .score-ring svg { transform: rotate(-90deg); display: block; }
-  .score-ring .ring-bg { stroke: rgba(255,255,255,0.06); }
-  .score-ring .ring-fg {
-    stroke-linecap: round;
-    transition: stroke-dashoffset 0.7s cubic-bezier(0.16,1,0.3,1);
-    filter: drop-shadow(0 0 6px var(--accent-glow));
-  }
-  .score-ring .score-num {
-    position: absolute; inset: 0;
-    display: flex; align-items: baseline; justify-content: center;
-    font-family: "Geist", sans-serif;
-    font-size: 24px; font-weight: 600;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.03em;
-    padding-top: 6px;
-  }
-  .score-ring .score-num small { font-size: 10px; color: var(--text-faint); font-weight: 500; margin-left: 1px; }
-  .eval-verdict { font-size: 13.5px; color: var(--text); line-height: 1.55; }
-
-  /* ANGLE CARDS */
-  .angle-stack { display: flex; flex-direction: column; gap: 12px; }
-  .angle-pro {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 13px;
-    padding: 16px 18px;
-    position: relative;
-    overflow: hidden;
-  }
-  .angle-pro::before {
-    content: ""; position: absolute; top: 0; left: 0; width: 3px; height: 100%;
-    background: linear-gradient(180deg, var(--accent), var(--accent-3));
-    opacity: 0.55;
-  }
-  .angle-pro .ang-head {
-    display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;
-  }
-  .angle-pro .ang-num {
-    flex-shrink: 0; width: 28px; height: 28px;
-    border-radius: 8px;
-    background: var(--accent-bg);
-    border: 1px solid var(--accent-border);
-    color: var(--accent);
-    font-family: "Geist Mono", monospace; font-size: 11.5px; font-weight: 700;
-    display: inline-flex; align-items: center; justify-content: center;
-    letter-spacing: -0.01em;
-  }
-  .angle-pro .ang-trigger {
-    font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4;
-    letter-spacing: -0.01em;
-  }
-  .angle-pro .ang-meta {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px;
-    margin-bottom: 12px;
-    padding: 11px 0;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
-  @media (max-width: 540px) {
-    .angle-pro .ang-meta { grid-template-columns: 1fr; }
-    .angle-pro .ang-meta .span-2 { grid-column: 1; }
-  }
-  .angle-pro .meta-cell { display: flex; flex-direction: column; gap: 3px; }
-  .angle-pro .meta-cell .meta-lbl {
-    font-size: 9.5px; font-weight: 600; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--text-faint);
-  }
-  .angle-pro .meta-cell .meta-val { font-size: 12.5px; color: var(--text); line-height: 1.5; }
-  .angle-pro .ang-meta .span-2 { grid-column: 1 / -1; }
-  .angle-pro .ang-pitch {
-    position: relative;
-    padding: 14px 16px 14px 42px;
-    background: var(--accent-soft);
-    border: 1px solid var(--accent-border);
-    border-radius: 10px;
-    font-size: 13px; line-height: 1.6;
-    color: #d9deff;
-  }
-  .angle-pro .ang-pitch::before {
-    content: "\201C";
-    position: absolute; top: -2px; left: 14px;
-    font-family: Georgia, serif; font-size: 40px;
-    color: var(--accent); opacity: 0.55; line-height: 1;
-  }
-
-  /* CODE BLOCK PRO — search queries with copy */
-  .code-pro {
-    position: relative;
-    background: #07070b;
-    border: 1px solid var(--border);
-    border-radius: 11px;
-    overflow: hidden;
-  }
-  .code-pro .code-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(255,255,255,0.015);
-    font-family: "Geist Mono", monospace; font-size: 10px;
-    color: var(--text-faint); letter-spacing: 0.08em; text-transform: uppercase;
-    font-weight: 600;
-  }
-  .code-pro .code-bar .copy-btn {
-    background: transparent; border: 1px solid var(--border-2);
-    color: var(--text-dim); padding: 3px 10px; border-radius: 6px;
-    font-size: 10px; cursor: pointer; transition: all 0.2s;
-    font-family: inherit; letter-spacing: 0.08em; text-transform: uppercase;
-  }
-  .code-pro .code-bar .copy-btn:hover {
-    background: var(--accent-bg); color: var(--accent); border-color: var(--accent-border);
-  }
-  .code-pro pre {
-    padding: 14px 16px;
-    font-family: "Geist Mono", monospace;
-    font-size: 12px; color: #e4e4e7;
-    white-space: pre-wrap; word-break: break-word; line-height: 1.7;
-    margin: 0;
-  }
-  .code-pro .kw { color: #a78bfa; font-weight: 600; }
-  .code-pro .qs { color: #6ee7b7; }
-
-  /* DOSSIER — briefing document */
-  .dossier {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 13px;
-    padding: 22px 24px;
-    font-size: 13.5px; line-height: 1.7;
-    color: var(--text);
-  }
-  .dossier h3 {
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--accent);
-    margin: 18px 0 9px;
-    padding-bottom: 7px;
-    border-bottom: 1px solid var(--border);
-  }
-  .dossier h3:first-child { margin-top: 0; }
-  .dossier p { margin: 0 0 10px 0; color: var(--text); }
-  .dossier strong { color: var(--text); font-weight: 600; }
-  .dossier ul { padding-left: 18px; margin: 6px 0 12px; list-style: none; }
-  .dossier ul li { position: relative; margin-bottom: 5px; }
-  .dossier ul li::before {
-    content: "";
-    position: absolute; left: -14px; top: 9px;
-    width: 4px; height: 4px;
-    background: var(--accent); border-radius: 999px;
-  }
-
-  /* CRM SUCCESS IDS */
-  .crm-ids { display: flex; flex-wrap: wrap; gap: 10px; }
-  .crm-id {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 9px 13px;
-    background: var(--done-bg);
-    border: 1px solid var(--done-border);
-    border-radius: 10px;
-    font-family: "Geist Mono", monospace;
-    font-size: 12px; color: var(--done);
-    letter-spacing: -0.005em;
-  }
-
-  /* ============== CHAT COMMAND CENTER ============== */
-  .app-grid {
-    display: grid;
-    grid-template-columns: 440px minmax(0, 1fr);
-    gap: 18px;
-    align-items: start;
-  }
-  @media (max-width: 1180px) { .app-grid { grid-template-columns: 1fr; } }
-
-  .chat-panel {
-    position: sticky; top: 80px;
-    height: calc(100vh - 100px);
-    display: flex; flex-direction: column;
-    overflow: hidden;
-    padding: 0;
-  }
-  @media (max-width: 1180px) {
-    .chat-panel { position: static; height: 70vh; }
-  }
-
-  .chat-head {
-    padding: 14px 18px;
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 12px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.018), transparent);
-  }
-  .chat-head .chav {
-    width: 38px; height: 38px; border-radius: 10px;
-    background: linear-gradient(135deg, #6366f1, #a78bfa);
-    display: inline-flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 14px -4px var(--accent-glow),
-                inset 0 1px 0 rgba(255,255,255,0.18);
-    flex-shrink: 0;
-  }
-  .chat-head .nm { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; }
-  .chat-head .mt { font-size: 10.5px; font-family: "Geist Mono", monospace; color: var(--text-faint); }
-
-  .chat-scroll {
-    flex: 1; overflow-y: auto;
-    padding: 18px;
-    display: flex; flex-direction: column; gap: 14px;
-    scroll-behavior: smooth;
-  }
-
-  .msg { display: flex; gap: 10px; max-width: 100%; }
-  .msg.user { justify-content: flex-end; }
-  .msg .mav {
-    width: 26px; height: 26px; border-radius: 7px;
-    flex-shrink: 0;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-family: "Geist Mono", monospace; font-weight: 700;
-    font-size: 9.5px; color: white;
-    box-shadow: 0 3px 10px -3px rgba(0,0,0,0.4),
-                inset 0 1px 0 rgba(255,255,255,0.15);
-  }
-  .msg .body { display: flex; flex-direction: column; min-width: 0; max-width: calc(100% - 36px); }
-  .msg .hd { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
-  .msg .hd .nm { font-size: 11.5px; font-weight: 600; color: var(--text); letter-spacing: -0.005em; }
-  .msg .hd .tm { font-family: "Geist Mono", monospace; font-size: 9.5px; color: var(--text-faint); }
-
-  .msg .bub {
-    font-size: 13.5px; line-height: 1.6;
-    color: var(--text);
-    padding: 11px 14px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    border-top-left-radius: 4px;
-    word-wrap: break-word; overflow-wrap: break-word;
-    white-space: pre-wrap;
-  }
-  .msg .bub strong { color: var(--text); font-weight: 600; }
-  .msg .bub em { color: var(--accent); font-style: normal; }
-  .msg .bub code {
-    font-family: "Geist Mono", monospace; font-size: 12px;
-    padding: 1px 6px; border-radius: 5px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid var(--border);
-    color: var(--accent-3);
-  }
-  .msg.user .body { align-items: flex-end; }
-  .msg.user .bub {
-    background: var(--accent-bg);
-    border-color: var(--accent-border);
-    color: var(--text);
-    border-top-left-radius: 12px;
-    border-top-right-radius: 4px;
-  }
-  .msg.agent .bub { border-top-left-radius: 4px; }
-
-  /* Embedded data block inside a message */
-  .msg .embed {
-    margin-top: 8px;
-    padding: 11px 13px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    font-size: 12.5px; line-height: 1.55;
-  }
-  .msg .embed .row {
-    display: flex; gap: 8px; padding: 3px 0;
-    font-family: "Geist Mono", monospace; font-size: 11.5px;
-  }
-  .msg .embed .row b { color: var(--text); font-weight: 600; }
-  .msg .embed .row .dim { color: var(--text-faint); }
-
-  /* Thinking indicator (3 bouncing dots) */
-  .thinking {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 12px 14px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    border-top-left-radius: 4px;
-  }
-  .thinking-dot {
-    width: 6px; height: 6px; border-radius: 999px;
-    background: var(--accent);
-  }
-  .thinking-dot:nth-child(1) { animation: thinkBounce 1.3s ease-in-out 0s infinite; }
-  .thinking-dot:nth-child(2) { animation: thinkBounce 1.3s ease-in-out 0.16s infinite; }
-  .thinking-dot:nth-child(3) { animation: thinkBounce 1.3s ease-in-out 0.32s infinite; }
-  @keyframes thinkBounce {
-    0%, 70%, 100% { opacity: 0.3; transform: translateY(0); }
-    35%           { opacity: 1;   transform: translateY(-3px); }
-  }
-
-  /* Streaming cursor */
-  .stream-cur {
-    display: inline-block; width: 2px; height: 13px;
-    background: var(--accent);
-    margin-left: 2px; vertical-align: -2px;
-    animation: blink 1s steps(2) infinite;
-  }
-
-  /* Quick action chips above input */
-  .chat-actions {
-    display: flex; flex-wrap: wrap; gap: 6px;
-    padding: 10px 14px 0;
-  }
-  .action-chip {
-    font-size: 11px; padding: 5px 11px;
-    background: var(--surface-2);
-    border: 1px solid var(--border-2);
-    border-radius: 999px;
-    color: var(--text-mut);
+    padding: 10px 16px; font-size: 12px; font-family: 'JetBrains Mono', monospace;
+    font-weight: 600; letter-spacing: 0.05em; color: #45464d;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    background: none; border-top: none; border-left: none; border-right: none;
     cursor: pointer;
-    font-family: inherit;
-    transition: all 0.15s;
-    letter-spacing: -0.005em;
   }
-  .action-chip:hover {
-    background: var(--accent-bg);
-    border-color: var(--accent-border);
-    color: var(--accent);
-    transform: translateY(-1px);
-  }
-
-  .chat-input-wrap {
-    padding: 12px 14px 14px;
-    border-top: 1px solid var(--border);
-    background: rgba(10,10,15,0.4);
-    position: relative;
-  }
-  .chat-input {
-    width: 100%;
-    background: rgba(255,255,255,0.025);
-    border: 1px solid var(--border-2);
-    border-radius: 12px;
-    padding: 13px 50px 13px 14px;
-    color: var(--text);
-    font-size: 13.5px;
-    font-family: inherit;
-    resize: none;
-    min-height: 46px;
-    max-height: 140px;
-    line-height: 1.5;
-  }
-  .chat-input::placeholder { color: var(--text-faint); }
-  .chat-input:focus {
-    outline: none;
-    border-color: var(--accent-border);
-    background: rgba(255,255,255,0.04);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-  .chat-send {
-    position: absolute;
-    right: 22px; bottom: 22px;
-    width: 32px; height: 32px;
-    border-radius: 9px;
-    background: linear-gradient(180deg, #4f46e5, #4338ca);
-    color: white;
-    display: inline-flex; align-items: center; justify-content: center;
-    border: none; cursor: pointer;
-    box-shadow:
-      0 0 0 1px rgba(255,255,255,0.10) inset,
-      0 0 22px -6px var(--accent-glow);
-    transition: all 0.15s;
-  }
-  .chat-send:disabled { opacity: 0.35; cursor: not-allowed; }
-  .chat-send:hover:not(:disabled) {
-    background: linear-gradient(180deg, #6366f1, #4f46e5);
-    transform: translateY(-1px);
-  }
-
-  /* Idle hero on the right column when no run yet */
-  .ready-hero {
-    padding: 32px;
-    display: flex; flex-direction: column; align-items: center;
-    text-align: center; gap: 14px;
-  }
-  .ready-hero .glyph {
-    width: 56px; height: 56px; border-radius: 14px;
-    background: linear-gradient(135deg, var(--accent-2), var(--accent-3));
-    display: inline-flex; align-items: center; justify-content: center;
-    color: white;
-    box-shadow: 0 0 32px -6px var(--accent-glow),
-                inset 0 1px 0 rgba(255,255,255,0.18);
-  }
-  .ready-hero h2 {
-    font-size: 18px; font-weight: 600; letter-spacing: -0.015em;
-    color: var(--text);
-  }
-  .ready-hero p {
-    font-size: 13.5px; line-height: 1.55;
-    color: var(--text-mut); max-width: 480px;
-  }
-  .ready-hero .kbd {
-    font-family: "Geist Mono", monospace; font-size: 11px;
-    padding: 3px 8px; border-radius: 6px;
-    background: var(--surface-3);
-    border: 1px solid var(--border-2);
-    color: var(--accent);
-    margin: 0 3px;
-  }
-
-  /* AGENT BYLINE — small avatar + label for section headers */
-  .agent-byline { display: flex; align-items: center; gap: 9px; margin-bottom: 13px; }
-  .agent-byline .av {
-    width: 22px; height: 22px; border-radius: 6px;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-family: "Geist Mono", monospace; font-weight: 700;
-    font-size: 9.5px; color: white;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
-  }
-  .agent-byline .ttl {
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--text-mut);
-  }
-  .agent-byline .sub {
-    font-family: "Geist Mono", monospace;
-    font-size: 10.5px; color: var(--text-faint);
-    margin-left: auto;
-  }
-
+  .tab-btn.active { color: #4648d4; border-bottom-color: #4648d4; }
+  .tab-btn:hover:not(.active) { color: #000; }
+  .acct-row { cursor:pointer; transition: background 0.1s; }
+  .acct-row:hover td { background: #eff4ff; }
+  .acct-row.selected td { background: #e5eeff; }
+  .status-dot { width:7px; height:7px; border-radius:9999px; display:inline-block; flex-shrink:0; }
+  .dot-pending { background:#c6c6cd; }
+  .dot-running { background:#4648d4; animation: pulse 1.4s ease-in-out infinite; }
+  .dot-enriched { background:#16a34a; }
+  .dot-dropped { background:#45464d; }
+  .dot-error { background:#ba1a1a; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .action-chip { transition: opacity 0.15s, transform 0.1s; }
+  .action-chip:hover { opacity:0.85; transform:scale(0.97); }
+  .ring-fg { stroke-linecap: round; transition: stroke-dashoffset 0.7s cubic-bezier(0.16,1,0.3,1); }
+  #chatModal { display:none; }
+  #chatModal.open { display:flex; }
+  .nav-link { text-decoration: none; }
+  code, .font-mono { font-family: 'JetBrains Mono', monospace; }
 </style>
 </head>
-<body>
+<body class="bg-background text-on-background overflow-hidden h-screen flex">
 
-<!-- ============== HEADER ============== -->
-<header class="sticky top-0 z-30 backdrop-blur-xl"
-        style="background: rgba(7,7,10,0.72); border-bottom: 1px solid var(--border);">
-  <div class="max-w-[1500px] mx-auto px-6 py-3.5 flex items-center gap-4">
-    <!-- Logo + Title -->
-    <div class="flex items-center gap-3 pr-4 border-r" style="border-color: var(--border);">
-      <div class="relative">
-        <div class="w-8 h-8 rounded-[9px] flex items-center justify-center"
-             style="background: linear-gradient(135deg, #6366f1, #a78bfa);
-                    box-shadow: 0 4px 16px -4px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.20);">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white"
-               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="6" r="2.2"/>
-            <circle cx="18" cy="18" r="2.2"/><circle cx="6" cy="18" r="2.2"/>
-            <path d="M8.2 6h7.6M6 8.2v7.6M18 8.2v7.6M8.2 18h7.6"/>
-          </svg>
-        </div>
-      </div>
-      <div class="leading-tight">
-        <div class="text-[13.5px] font-semibold tracking-tight">BDR Agent</div>
-        <div class="text-[10.5px] mono" style="color: var(--text-faint);">orchestration · v1</div>
-      </div>
+<!-- Auth guard overlay — hidden once Firebase confirms the user is signed in -->
+<div id="_authGuard" style="position:fixed;inset:0;z-index:9999;background:#f8f9ff;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+  <div style="width:44px;height:44px;border-radius:12px;background:#4648d4;display:flex;align-items:center;justify-content:center;">
+    <span class="material-symbols-outlined" style="color:#fff;font-size:22px;font-variation-settings:'FILL' 1">analytics</span>
+  </div>
+  <p style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#45464d;letter-spacing:0.08em;">Checking authentication…</p>
+</div>
+
+<!-- =========================================================
+     SIDE NAV (fixed 280px)
+     ========================================================= -->
+<aside class="fixed left-0 top-0 h-full w-[280px] bg-surface-container-low border-r border-outline-variant/50 flex flex-col p-4 gap-2 z-50 shrink-0">
+  <div class="flex items-center gap-4 px-2 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-on-primary shadow-sm shrink-0">
+      <span class="material-symbols-outlined text-[22px]" style="font-variation-settings:'FILL' 1;">analytics</span>
     </div>
-
-    <!-- Run status -->
-    <div class="flex items-center gap-2.5">
-      <span class="indicator live-dot" style="background: var(--done); box-shadow: 0 0 8px var(--done-glow);"></span>
-      <span class="text-[11px] mono tracking-wider uppercase" style="color: var(--text-dim);">status</span>
-      <span id="runStatus" class="pill pill-idle">idle</span>
-      <span id="batchProgress" class="text-[11.5px] tnum mono" style="color: var(--text-dim);"></span>
-    </div>
-
-    <!-- Right cluster -->
-    <div class="ml-auto flex items-center gap-3">
-      <span id="runId" class="mono text-[10.5px]" style="color: var(--text-faint);"></span>
-      <button id="cancelBtn" class="hidden btn-ghost">Cancel run</button>
+    <div>
+      <h1 class="text-[18px] font-black text-on-surface leading-tight tracking-tight">InsightEngine</h1>
+      <p class="text-[11px] font-mono font-medium text-on-surface-variant opacity-70 tracking-wide">AI Account Researcher</p>
     </div>
   </div>
-</header>
 
-<main class="max-w-[1700px] mx-auto p-6">
-<div class="app-grid">
+  <nav class="flex-1 flex flex-col gap-1">
+    <a href="#" onclick="showView('setup');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl" id="navSetup">
+      <span class="material-symbols-outlined text-[22px]">rocket_launch</span>
+      <span class="text-[12px] font-mono font-semibold tracking-wide">Pipeline</span>
+    </a>
+    <a href="#" onclick="showView('dashboard');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl" id="navDashboard">
+      <span class="material-symbols-outlined text-[22px]">business_center</span>
+      <span class="text-[12px] font-mono font-semibold tracking-wide">Accounts</span>
+    </a>
+    <a href="#" onclick="showView('intelligence');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl" id="navIntelligence">
+      <span class="material-symbols-outlined text-[22px]">psychology</span>
+      <span class="text-[12px] font-mono font-semibold tracking-wide">Intelligence</span>
+    </a>
+    <a href="#" onclick="showView('stakeholders');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl" id="navStakeholders">
+      <span class="material-symbols-outlined text-[22px]">hub</span>
+      <span class="text-[12px] font-mono font-semibold tracking-wide">Stakeholders</span>
+    </a>
+    <a href="#" onclick="showView('library');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl" id="navLibrary">
+      <span class="material-symbols-outlined text-[22px]">folder_shared</span>
+      <span class="text-[12px] font-mono font-semibold tracking-wide">Library</span>
+    </a>
+  </nav>
 
-  <!-- ============== CHAT COMMAND CENTER ============== -->
-  <aside class="chat-panel card appear">
-    <div class="chat-head">
-      <div class="chav">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white"
-             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/>
-        </svg>
+  <div class="mt-auto flex flex-col gap-1">
+    <div class="bg-surface-container-high p-4 rounded-xl mb-2">
+      <p class="text-[12px] font-mono font-semibold text-on-surface mb-2">Pipeline Health</p>
+      <div class="w-full bg-outline-variant/30 h-1.5 rounded-full overflow-hidden">
+        <div id="sidebarProgress" class="bg-secondary h-full transition-all duration-700 rounded-full" style="width:0%"></div>
       </div>
-      <div class="leading-tight">
-        <div class="nm">Orchestrator</div>
-        <div class="mt">8 specialist agents · ready</div>
-      </div>
-      <div class="ml-auto flex items-center gap-1.5">
-        <span class="indicator live-dot" style="background: var(--done); box-shadow: 0 0 8px var(--done-glow);"></span>
-        <span class="text-[10px] mono uppercase tracking-wider" style="color: var(--text-dim);">live</span>
-      </div>
+      <p id="sidebarProgressLabel" class="text-[11px] font-mono text-on-surface-variant mt-2">No active run</p>
     </div>
-    <div id="chatScroll" class="chat-scroll scroll-area"></div>
-    <div class="chat-actions" id="chatActions">
-      <button class="action-chip" data-cmd="preview the sheet">preview sheet</button>
-      <button class="action-chip" data-cmd="start a run">start a run</button>
-      <button class="action-chip" data-cmd="status">status</button>
-      <button class="action-chip" data-cmd="who's qualified">who's qualified?</button>
-      <button class="action-chip" data-cmd="help">help</button>
+    <a href="#" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl">
+      <span class="material-symbols-outlined text-[22px]">help</span>
+      <span class="text-[12px] font-mono font-semibold tracking-wide">Help</span>
+    </a>
+    <a href="#" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl">
+      <span class="material-symbols-outlined text-[22px]">settings</span>
+      <span class="text-[12px] font-mono font-semibold tracking-wide">Settings</span>
+    </a>
+  </div>
+</aside>
+
+<!-- =========================================================
+     MAIN COLUMN
+     ========================================================= -->
+<div class="ml-[280px] flex-1 flex flex-col h-screen overflow-hidden">
+
+  <!-- TOP NAV BAR -->
+  <header class="sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/30 flex justify-between items-center w-full px-10 h-16 shrink-0">
+    <div class="flex items-center gap-6">
+      <span class="text-[22px] font-black text-primary tracking-tight">InsightEngine</span>
+      <span id="runStatusPill" class="hidden px-3 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-surface-container-high text-on-surface-variant">idle</span>
+      <span id="batchLabel" class="text-[12px] font-mono text-on-surface-variant hidden"></span>
+      <span id="runIdLabel" class="text-[12px] font-mono text-on-surface-variant/50 hidden"></span>
     </div>
-    <div class="chat-input-wrap">
-      <textarea id="chatInput" class="chat-input" rows="1"
-        placeholder="Ask anything — try 'start a run' or 'tell me about Acme'…"></textarea>
-      <button id="chatSend" class="chat-send" aria-label="Send">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 12h14M13 5l7 7-7 7"/>
-        </svg>
+    <div class="flex items-center gap-3">
+      <button id="cancelBtn" onclick="cancelRun()" class="hidden px-4 py-2 border border-error/40 text-error rounded-xl text-[12px] font-mono font-semibold hover:bg-error-container transition-colors">
+        Cancel Run
       </button>
-    </div>
-  </aside>
-
-  <!-- ============== RIGHT COLUMN ============== -->
-  <div id="rightCol" class="space-y-5 min-w-0">
-
-  <!-- READY HERO — shown while no run is active -->
-  <section id="readyHero" class="card appear">
-    <div class="ready-hero">
-      <div class="glyph">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="6" r="2.2"/>
-          <circle cx="18" cy="18" r="2.2"/><circle cx="6" cy="18" r="2.2"/>
-          <path d="M8.2 6h7.6M6 8.2v7.6M18 8.2v7.6M8.2 18h7.6"/>
-        </svg>
+      <button class="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-lg hover:bg-surface-container">
+        <span class="material-symbols-outlined">notifications</span>
+      </button>
+      <div class="relative group">
+        <div id="headerAvatar" class="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-on-secondary font-bold text-xs cursor-pointer select-none">?</div>
+        <div class="hidden group-hover:flex absolute right-0 top-10 flex-col bg-white border border-outline-variant/30 rounded-2xl shadow-xl p-2 min-w-[200px] z-50">
+          <p id="headerUserName" class="px-4 py-2 text-[12px] font-semibold text-on-surface border-b border-outline-variant/20 mb-1 truncate">User</p>
+          <a href="/" class="flex items-center gap-2 px-4 py-2.5 text-[13px] text-on-surface hover:bg-surface-container-low rounded-xl transition-colors">
+            <span class="material-symbols-outlined text-[16px] text-on-surface-variant">home</span>Landing Page
+          </a>
+          <button onclick="window._fbAuth&&window._fbAuth.signOut().then(()=>window.location.replace('/'))" class="flex items-center gap-2 px-4 py-2.5 text-[13px] text-on-surface hover:bg-surface-container-low rounded-xl transition-colors text-left w-full">
+            <span class="material-symbols-outlined text-[16px] text-on-surface-variant">logout</span>Sign Out
+          </button>
+        </div>
       </div>
-      <h2>Crew is standing by.</h2>
-      <p>Tell the orchestrator to <span class="kbd">start a run</span> in chat, or ask for a <span class="kbd">preview</span> of the Google Sheet. The live status board will appear here.</p>
     </div>
-  </section>
+  </header>
 
-  <!-- ============== SETUP PANEL (hidden — driven by chat) ============== -->
-  <section id="setupPanel" class="card p-8 space-y-7 appear hidden">
-    <div class="flex items-start justify-between gap-6">
+  <!-- SCROLLABLE CONTENT -->
+  <main id="mainScroll" class="flex-1 overflow-y-auto custom-scrollbar bg-surface">
+
+    <!-- =====================================================
+         SETUP PANEL
+         ===================================================== -->
+    <section id="setupPanel" class="p-10 space-y-8">
+
+      <!-- Hero glass card with WebGL background -->
+      <div class="glass-intelligence p-8 rounded-2xl relative overflow-hidden min-h-[300px]">
+        <div class="absolute inset-0 z-0 pointer-events-none">
+          <canvas id="heroShader" style="display:block;width:100%;height:100%;"></canvas>
+        </div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="flex items-center gap-1.5 px-3 py-1 bg-secondary/10 text-secondary text-[11px] font-mono font-semibold rounded-full tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-secondary" style="animation:pulse 1.5s ease-in-out infinite;"></span>
+              <span class="material-symbols-outlined text-[14px]">auto_awesome</span> AI PIPELINE
+            </span>
+            <span class="px-3 py-1 bg-white/40 text-on-surface-variant text-[11px] font-mono font-semibold rounded-full tracking-wide">8 SPECIALIST AGENTS</span>
+          </div>
+          <h1 class="text-[42px] font-black text-primary leading-tight tracking-tight mb-4">Start Account Research</h1>
+          <p class="text-[16px] text-on-surface-variant leading-relaxed max-w-3xl mb-8">
+            Eight named agents — <span class="text-secondary font-semibold">Atlas, Echo, Talent, Oracle, Pitch, Hunter, Scribe,</span> and <span class="text-secondary font-semibold">Ledger</span> — research each account, score fit, and push qualified accounts to Pipedrive with a full briefing.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-4 bg-white/50 rounded-xl border border-white/60 relative overflow-hidden">
+              <p class="text-[11px] font-mono text-on-surface-variant/60 mb-1 tracking-wide">MODEL</p>
+              <p class="text-[17px] font-semibold text-primary">Claude Opus 4</p>
+              <div class="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-secondary/5 to-transparent scan-anim"></div>
+            </div>
+            <div class="p-4 bg-white/50 rounded-xl border border-white/60 relative overflow-hidden">
+              <p class="text-[11px] font-mono text-on-surface-variant/60 mb-1 tracking-wide">PARALLELISM</p>
+              <p class="text-[17px] font-semibold text-primary">5× Concurrent</p>
+              <div class="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-secondary/5 to-transparent scan-anim" style="animation-delay:1s;"></div>
+            </div>
+            <div class="p-4 bg-white/50 rounded-xl border border-white/60 relative overflow-hidden">
+              <p class="text-[11px] font-mono text-on-surface-variant/60 mb-1 tracking-wide">OUTPUT</p>
+              <p class="text-[17px] font-semibold text-primary">CRM + Dossier</p>
+              <div class="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-secondary/5 to-transparent scan-anim" style="animation-delay:2s;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuration form -->
+      <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-8">
+        <h2 class="text-[24px] font-bold text-on-surface mb-6">Configure Run</h2>
+        <div class="grid md:grid-cols-2 gap-6 mb-6">
+          <label class="block">
+            <span class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-2 block">Google Sheet ID</span>
+            <input id="sheetId" type="text" placeholder="Leave empty to use .env value"
+              class="w-full border border-outline-variant rounded-xl px-4 py-3 text-[14px] focus:ring-2 focus:ring-secondary/30 focus:border-secondary outline-none bg-surface-container-lowest transition-all"/>
+          </label>
+          <label class="block">
+            <span class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-2 block">Value Proposition</span>
+            <textarea id="valueProp" rows="3" placeholder="e.g. Fleet Telematics — real-time driver coaching for fleets under CSA / insurance pressure."
+              class="w-full border border-outline-variant rounded-xl px-4 py-3 text-[14px] focus:ring-2 focus:ring-secondary/30 focus:border-secondary outline-none bg-surface-container-lowest resize-none transition-all"></textarea>
+          </label>
+        </div>
+        <div class="flex items-center gap-4 flex-wrap">
+          <button onclick="startRun()" class="action-chip flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-xl text-[13px] font-semibold shadow-md">
+            <span class="material-symbols-outlined text-[18px]">rocket_launch</span> Start Pipeline
+          </button>
+          <button onclick="previewSheet()" class="flex items-center gap-2 px-6 py-3 border border-outline-variant text-on-surface rounded-xl text-[13px] font-semibold hover:bg-surface-container-low transition-colors">
+            <span class="material-symbols-outlined text-[18px]">preview</span> Preview Sheet
+          </button>
+          <span id="setupError" class="text-error text-[13px] font-mono"></span>
+        </div>
+        <div id="previewBox" class="hidden mt-6 bg-surface-container-low rounded-xl p-6 overflow-auto max-h-64 custom-scrollbar"></div>
+      </div>
+
+      <!-- Agent crew grid -->
+      <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-8">
+        <h2 class="text-[18px] font-bold text-on-surface mb-6">Agent Crew</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 hover:border-secondary/30 transition-colors">
+            <div class="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center mb-2">
+              <span class="material-symbols-outlined text-secondary text-[18px]">travel_explore</span>
+            </div>
+            <p class="text-[13px] font-bold text-primary">Atlas</p>
+            <p class="text-[11px] text-on-surface-variant">Web research</p>
+          </div>
+          <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 hover:border-secondary/30 transition-colors">
+            <div class="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center mb-2">
+              <span class="material-symbols-outlined text-secondary text-[18px]">hearing</span>
+            </div>
+            <p class="text-[13px] font-bold text-primary">Echo</p>
+            <p class="text-[11px] text-on-surface-variant">News scanning</p>
+          </div>
+          <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 hover:border-secondary/30 transition-colors">
+            <div class="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center mb-2">
+              <span class="material-symbols-outlined text-secondary text-[18px]">group</span>
+            </div>
+            <p class="text-[13px] font-bold text-primary">Talent</p>
+            <p class="text-[11px] text-on-surface-variant">LinkedIn intel</p>
+          </div>
+          <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 hover:border-secondary/30 transition-colors">
+            <div class="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center mb-2">
+              <span class="material-symbols-outlined text-secondary text-[18px]">grade</span>
+            </div>
+            <p class="text-[13px] font-bold text-primary">Oracle</p>
+            <p class="text-[11px] text-on-surface-variant">Evaluation</p>
+          </div>
+          <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 hover:border-secondary/30 transition-colors">
+            <div class="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center mb-2">
+              <span class="material-symbols-outlined text-secondary text-[18px]">manage_search</span>
+            </div>
+            <p class="text-[13px] font-bold text-primary">Pitch</p>
+            <p class="text-[11px] text-on-surface-variant">Search commands</p>
+          </div>
+          <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 hover:border-secondary/30 transition-colors">
+            <div class="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center mb-2">
+              <span class="material-symbols-outlined text-secondary text-[18px]">hub</span>
+            </div>
+            <p class="text-[13px] font-bold text-primary">Hunter</p>
+            <p class="text-[11px] text-on-surface-variant">Contact mapping</p>
+          </div>
+          <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 hover:border-secondary/30 transition-colors">
+            <div class="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center mb-2">
+              <span class="material-symbols-outlined text-secondary text-[18px]">article</span>
+            </div>
+            <p class="text-[13px] font-bold text-primary">Scribe</p>
+            <p class="text-[11px] text-on-surface-variant">Dossier writing</p>
+          </div>
+          <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 hover:border-secondary/30 transition-colors">
+            <div class="w-8 h-8 bg-secondary/10 rounded-lg flex items-center justify-center mb-2">
+              <span class="material-symbols-outlined text-secondary text-[18px]">sync_alt</span>
+            </div>
+            <p class="text-[13px] font-bold text-primary">Ledger</p>
+            <p class="text-[11px] text-on-surface-variant">Pipedrive sync</p>
+          </div>
+        </div>
+      </div>
+    </section><!-- /setupPanel -->
+
+    <!-- =====================================================
+         DASHBOARD PANEL
+         ===================================================== -->
+    <section id="dashboardPanel" class="hidden p-10 space-y-6">
+
+      <!-- Progress strip -->
+      <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div class="flex items-center gap-4">
+            <span class="text-[22px] font-bold text-on-surface">Account Pipeline</span>
+            <span id="progressPct" class="text-[12px] font-mono text-on-surface-variant"></span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span class="px-3 py-0.5 bg-surface-container text-on-surface-variant rounded-full text-[11px] font-mono font-semibold">Pending <b id="cntPending">0</b></span>
+            <span class="px-3 py-0.5 bg-secondary/10 text-secondary rounded-full text-[11px] font-mono font-semibold">Running <b id="cntRunning">0</b></span>
+            <span class="px-3 py-0.5 bg-green-100 text-green-700 rounded-full text-[11px] font-mono font-semibold">Enriched <b id="cntEnriched">0</b></span>
+            <span class="px-3 py-0.5 bg-surface-container-high text-on-surface-variant rounded-full text-[11px] font-mono font-semibold">Dropped <b id="cntDropped">0</b></span>
+            <span class="px-3 py-0.5 bg-error-container text-on-error-container rounded-full text-[11px] font-mono font-semibold">Error <b id="cntError">0</b></span>
+          </div>
+        </div>
+        <div class="w-full bg-outline-variant/20 h-2 rounded-full overflow-hidden">
+          <div id="progressBar" class="bg-secondary h-full transition-all duration-700 rounded-full" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Two-column: Account List + Detail -->
+      <div class="grid grid-cols-12 gap-5">
+
+        <!-- Account List (left, 4 cols on desktop) -->
+        <div class="col-span-12 lg:col-span-4">
+          <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-outline-variant/20">
+              <h2 class="text-[17px] font-bold text-on-surface">Portfolio at a Glance</h2>
+              <span id="acctCount" class="text-[11px] font-mono text-on-surface-variant"></span>
+            </div>
+            <div class="overflow-y-auto custom-scrollbar" style="max-height: calc(100vh - 340px);">
+              <table class="w-full text-left">
+                <thead class="sticky top-0 bg-surface-container-lowest z-10">
+                  <tr class="border-b border-outline-variant/20">
+                    <th class="pb-2 pt-3 px-4 text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide">Account</th>
+                    <th class="pb-2 pt-3 px-3 text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide">Status</th>
+                    <th class="pb-2 pt-3 px-3 text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide text-right">Score</th>
+                  </tr>
+                </thead>
+                <tbody id="accountList" class="divide-y divide-outline-variant/10"></tbody>
+              </table>
+              <div id="acctEmpty" class="hidden p-8 text-center text-on-surface-variant text-[14px]">No accounts yet.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Detail (right, 8 cols on desktop) -->
+        <div class="col-span-12 lg:col-span-8 space-y-5" id="accountDetailSection">
+
+          <!-- Empty state -->
+          <div id="detailEmpty" class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-10 text-center">
+            <div class="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span class="material-symbols-outlined text-secondary text-[32px]">psychology</span>
+            </div>
+            <h3 class="text-[22px] font-bold text-on-surface mb-2">Select an account</h3>
+            <p class="text-[14px] text-on-surface-variant">Click any account from the portfolio list to view its full AI intelligence profile.</p>
+          </div>
+
+          <!-- Intelligence Profile (hidden until account selected) -->
+          <div id="detailContent" class="hidden space-y-5">
+
+            <!-- Glass Hero: Executive Summary -->
+            <div class="glass-intelligence p-8 rounded-2xl relative overflow-hidden">
+              <div class="absolute inset-0 z-0 pointer-events-none opacity-40">
+                <canvas id="detailShader" style="display:block;width:100%;height:100%;"></canvas>
+              </div>
+              <div class="absolute top-0 right-0 p-6 flex gap-2 z-10">
+                <span id="heroAiTag" class="flex items-center gap-1.5 px-3 py-1 bg-secondary/10 text-secondary text-[11px] font-mono font-semibold rounded-full tracking-wide">
+                  <span class="w-1.5 h-1.5 rounded-full bg-secondary" style="animation:pulse 1.5s ease-in-out infinite;"></span>
+                  <span class="material-symbols-outlined text-[13px]">auto_awesome</span> AI SYNTHESIS
+                </span>
+                <span id="heroStatusTag" class="hidden flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-[11px] font-mono font-semibold rounded-full">HIGH INTENT</span>
+              </div>
+              <div class="max-w-4xl space-y-4 relative z-10">
+                <h1 id="heroName" class="text-[36px] font-black text-primary leading-tight tracking-tight"></h1>
+                <p id="heroSummary" class="text-[16px] text-on-surface-variant leading-relaxed"></p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                  <div class="p-4 bg-white/50 rounded-xl border border-white/60">
+                    <p class="text-[11px] font-mono text-on-surface-variant/60 mb-1 tracking-wide">KEY ANGLE</p>
+                    <p id="heroAngle" class="text-[16px] font-semibold text-primary leading-snug">—</p>
+                  </div>
+                  <div class="p-4 bg-white/50 rounded-xl border border-white/60">
+                    <p class="text-[11px] font-mono text-on-surface-variant/60 mb-1 tracking-wide">FIT SCORE</p>
+                    <p id="heroScore" class="text-[16px] font-semibold text-primary">—</p>
+                  </div>
+                  <div class="p-4 bg-white/50 rounded-xl border border-white/60">
+                    <p class="text-[11px] font-mono text-on-surface-variant/60 mb-1 tracking-wide">NEXT ACTION</p>
+                    <p id="heroNextAction" class="text-[16px] font-semibold text-primary">—</p>
+                  </div>
+                </div>
+              </div>
+              <!-- Live agent log marquee (shown when running) -->
+              <div id="heroMarqueeWrap" class="hidden mt-5 pt-4 border-t border-outline-variant/20 flex items-center gap-4 overflow-hidden relative z-10">
+                <span class="text-[11px] font-mono font-bold text-secondary flex-shrink-0 tracking-wide">LIVE AGENT LOG:</span>
+                <div id="heroMarquee" class="flex gap-10 whitespace-nowrap" style="animation:marquee 22s linear infinite;"></div>
+              </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl overflow-hidden">
+              <div class="flex border-b border-outline-variant/20 px-4 overflow-x-auto">
+                <button class="tab-btn active" onclick="switchTab('overview',this)">Overview</button>
+                <button class="tab-btn" onclick="switchTab('evaluation',this)">Evaluation</button>
+                <button class="tab-btn" onclick="switchTab('search',this)">Search Commands</button>
+                <button class="tab-btn" onclick="switchTab('pipedrive',this)">Pipedrive</button>
+              </div>
+
+              <!-- OVERVIEW TAB -->
+              <div id="tab-overview" class="tab-content p-6 grid grid-cols-12 gap-6">
+                <div class="col-span-12 lg:col-span-8 space-y-6">
+                  <div id="hypothesisSection">
+                    <div class="flex items-center gap-2 mb-4">
+                      <span class="material-symbols-outlined text-secondary text-[22px]" style="font-variation-settings:'FILL' 1;">lightbulb</span>
+                      <h3 class="text-[20px] font-bold text-on-surface">Hypothesis</h3>
+                    </div>
+                    <div id="hypothesisContent" class="space-y-3"></div>
+                  </div>
+                  <div id="newsSection">
+                    <div class="flex items-center gap-2 mb-4">
+                      <span class="material-symbols-outlined text-secondary text-[22px]">newspaper</span>
+                      <h3 class="text-[20px] font-bold text-on-surface">Intelligence Feed</h3>
+                    </div>
+                    <div id="newsContent" class="space-y-3"></div>
+                  </div>
+                </div>
+                <div class="col-span-12 lg:col-span-4 space-y-4">
+                  <div class="flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-secondary text-[22px]">group</span>
+                    <h3 class="text-[18px] font-bold text-on-surface">LinkedIn Signals</h3>
+                  </div>
+                  <div id="linkedinContent" class="space-y-2"></div>
+                </div>
+              </div>
+
+              <!-- EVALUATION TAB -->
+              <div id="tab-evaluation" class="tab-content p-6 hidden">
+                <div class="grid grid-cols-12 gap-6">
+                  <div class="col-span-12 lg:col-span-6">
+                    <p class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-4">Evaluation — Pass 1</p>
+                    <div id="eval1Content"></div>
+                  </div>
+                  <div class="col-span-12 lg:col-span-6">
+                    <p class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-4">Evaluation — Pass 2 (Retry)</p>
+                    <div id="eval2Content"></div>
+                  </div>
+                  <div class="col-span-12">
+                    <div class="bg-primary-container rounded-2xl p-8">
+                      <div class="flex items-center gap-3 mb-6">
+                        <span class="material-symbols-outlined text-secondary-fixed-dim text-[22px]">mail</span>
+                        <h3 class="text-[20px] font-bold text-on-primary-container">Recommended Outreach</h3>
+                      </div>
+                      <div id="talkingPointsContent"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SEARCH COMMANDS TAB -->
+              <div id="tab-search" class="tab-content p-6 hidden">
+                <div class="flex items-center gap-3 mb-6">
+                  <span class="material-symbols-outlined text-secondary text-[22px]">manage_search</span>
+                  <h3 class="text-[20px] font-bold text-on-surface">LinkedIn Sales Navigator</h3>
+                </div>
+                <div id="searchContent"></div>
+              </div>
+
+              <!-- PIPEDRIVE TAB -->
+              <div id="tab-pipedrive" class="tab-content p-6 hidden">
+                <div id="pipedriveContent"></div>
+              </div>
+
+            </div>
+          </div><!-- /detailContent -->
+        </div>
+      </div><!-- /grid -->
+    </section><!-- /dashboardPanel -->
+
+    <!-- =====================================================
+         COMING SOON PANEL (Intelligence / Stakeholders / Library)
+         ===================================================== -->
+    <section id="comingSoonPanel" class="hidden p-10 flex items-center justify-center" style="min-height: calc(100vh - 64px);">
+      <div class="text-center max-w-md">
+        <div class="w-20 h-20 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+          <span id="comingSoonIcon" class="material-symbols-outlined text-secondary text-[40px]">construction</span>
+        </div>
+        <h2 id="comingSoonTitle" class="text-[28px] font-black text-primary mb-3"></h2>
+        <p class="text-[15px] text-on-surface-variant leading-relaxed">This section is being built. Run the pipeline first — accounts you enrich will populate views here.</p>
+        <button onclick="showView('setup')" class="mt-8 px-6 py-3 bg-primary text-on-primary rounded-xl text-[13px] font-semibold">
+          Go to Pipeline
+        </button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- =========================================================
+     AI FAB
+     ========================================================= -->
+<button onclick="openChat()" class="fixed bottom-10 right-10 bg-secondary text-on-secondary px-6 py-3 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2 group z-50">
+  <span class="material-symbols-outlined group-hover:rotate-12 transition-transform text-[20px]">auto_awesome</span>
+  <span class="text-[15px] font-semibold">Ask InsightEngine</span>
+</button>
+
+<!-- =========================================================
+     CHAT MODAL
+     ========================================================= -->
+<div id="chatModal" class="fixed inset-0 z-50 items-end justify-end p-6 pointer-events-none">
+  <div class="pointer-events-auto w-[440px] bg-surface-container-lowest border border-outline-variant/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden" style="height:600px;">
+    <div class="flex items-center gap-3 px-6 py-4 border-b border-outline-variant/20 bg-surface/70 backdrop-blur-sm shrink-0">
+      <div class="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-on-secondary shrink-0">
+        <span class="material-symbols-outlined text-[20px]">smart_toy</span>
+      </div>
       <div>
-        <div class="flex items-center gap-2 mb-3">
-          <span class="eyebrow">Start a run</span>
-          <span class="text-[10px] mono px-1.5 py-0.5 rounded"
-                style="background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border);">
-            multi-agent
-          </span>
-        </div>
-        <h2 class="heading-lg">Configure the next batch</h2>
-        <p class="text-[14px] mt-2 max-w-2xl leading-relaxed" style="color: var(--text-mut);">
-          Eight named agents — Atlas, Echo, Talent, Oracle, Pitch, Hunter, Scribe, and Ledger — run in parallel
-          to research each account, score fit, and write qualified accounts to Pipedrive with a full briefing.
-        </p>
+        <p class="text-[16px] font-semibold text-on-surface leading-tight">Orchestrator</p>
+        <p class="text-[11px] font-mono text-on-surface-variant">8 agents · ready</p>
       </div>
-      <div class="hidden md:flex flex-col items-end gap-2 shrink-0">
-        <div class="stat-chip"><span class="stat-label">model</span><span class="stat-val">claude-opus-4</span></div>
-        <div class="stat-chip"><span class="stat-label">parallel</span><span class="stat-val">5×</span></div>
-      </div>
-    </div>
-
-    <div class="hairline"></div>
-
-    <div class="grid md:grid-cols-2 gap-5">
-      <label class="block">
-        <span class="eyebrow">Google Sheet ID</span>
-        <input id="sheetId" type="text" class="input mono mt-2"
-          placeholder="(uses GOOGLE_SHEET_ID from .env if empty)" />
-      </label>
-      <label class="block">
-        <span class="eyebrow">Value proposition</span>
-        <textarea id="valueProp" rows="3" class="input mt-2"
-          placeholder="e.g. Fleet Telematics / IoT — real-time driver coaching for fleets under CSA / insurance pressure."></textarea>
-      </label>
-    </div>
-
-    <div class="flex items-center gap-3 pt-1">
-      <button id="startBtn" class="btn-primary">
-        <span class="flex items-center gap-2">
-          Start pipeline
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h14M13 5l7 7-7 7"/>
-          </svg>
-        </span>
+      <button onclick="closeChat()" class="ml-auto p-1 hover:bg-surface-container rounded-full transition-colors text-on-surface-variant">
+        <span class="material-symbols-outlined">close</span>
       </button>
-      <button id="previewBtn" class="btn-secondary">Preview sheet</button>
-      <span id="setupError" class="text-xs ml-1" style="color: var(--error);"></span>
     </div>
-    <div id="previewBox" class="hidden text-xs card-flat p-4 max-h-72 overflow-auto scroll-area"></div>
-  </section>
-
-  <!-- ============== SLIM RUN STATUS STRIP ============== -->
-  <section id="agentStrip" class="hidden card p-4 space-y-3 appear">
-    <div class="flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2 min-w-0">
-        <span class="eyebrow">Pipeline</span>
-        <span class="indicator ind-running breathe"></span>
-        <span class="text-[10.5px] mono uppercase tracking-wider truncate" style="color: var(--text-dim);">live transmission</span>
-      </div>
-      <div class="flex items-baseline gap-3 shrink-0">
-        <span class="text-[14px] tnum font-semibold" id="progressPct" style="color: var(--text);">0 / 0</span>
-        <span class="text-[10.5px] mono tnum" id="progressDetail" style="color: var(--text-faint);">0%</span>
-      </div>
+    <div id="chatScroll" class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-3"></div>
+    <div class="flex flex-wrap gap-2 px-5 pt-2 pb-1 shrink-0">
+      <button class="action-chip px-3 py-1 bg-surface-container border border-outline-variant/30 rounded-full text-[11px] font-mono text-on-surface-variant" onclick="sendQuickChat('start a run')">start a run</button>
+      <button class="action-chip px-3 py-1 bg-surface-container border border-outline-variant/30 rounded-full text-[11px] font-mono text-on-surface-variant" onclick="sendQuickChat('status')">status</button>
+      <button class="action-chip px-3 py-1 bg-surface-container border border-outline-variant/30 rounded-full text-[11px] font-mono text-on-surface-variant" onclick="sendQuickChat('preview the sheet')">preview sheet</button>
+      <button class="action-chip px-3 py-1 bg-surface-container border border-outline-variant/30 rounded-full text-[11px] font-mono text-on-surface-variant" onclick="sendQuickChat('help')">help</button>
     </div>
-    <div class="prog-track">
-      <div id="progressBar" class="prog-bar" style="width: 0%"></div>
+    <div class="px-5 pb-5 pt-2 flex gap-2 shrink-0">
+      <input id="chatInput" type="text" placeholder="Ask anything…"
+        class="flex-1 border border-outline-variant rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-secondary/30 focus:border-secondary outline-none bg-surface-container-lowest"
+        onkeydown="if(event.key==='Enter')sendChat()"/>
+      <button onclick="sendChat()" class="action-chip px-4 py-2.5 bg-secondary text-on-secondary rounded-xl">
+        <span class="material-symbols-outlined text-[18px]">send</span>
+      </button>
     </div>
-    <div class="flex flex-wrap gap-1.5">
-      <span class="pill pill-pending tnum">Pending <span id="cntPending">0</span></span>
-      <span class="pill pill-running tnum">Running <span id="cntRunning">0</span></span>
-      <span class="pill pill-enriched tnum">Enriched <span id="cntEnriched">0</span></span>
-      <span class="pill pill-dropped tnum">Dropped <span id="cntDropped">0</span></span>
-      <span class="pill pill-error tnum">Error <span id="cntError">0</span></span>
-    </div>
-  </section>
+  </div>
+</div>
 
-  <!-- ============== ACCOUNT LIST + DETAIL ============== -->
-  <section id="mainPanel" class="hidden grid grid-cols-1 lg:grid-cols-[260px,1fr] gap-4">
-
-    <!-- account list -->
-    <div class="card max-h-[80vh] flex flex-col overflow-hidden">
-      <div class="px-4 py-3.5 flex items-center justify-between border-b" style="border-color: var(--border);">
-        <div class="flex items-center gap-2">
-          <span class="eyebrow">Accounts</span>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-faint);">
-            <path d="M3 7h18M6 12h12M9 17h6"/>
-          </svg>
-        </div>
-        <span class="text-[10px] mono tnum" id="acctCount" style="color: var(--text-faint);"></span>
-      </div>
-      <ul id="accountList" class="overflow-y-auto scroll-area divide-y" style="border-color: var(--border);"></ul>
-    </div>
-
-    <!-- detail -->
-    <div class="card detail-card flex flex-col overflow-hidden">
-      <div class="px-5 py-4 border-b flex items-center gap-3" style="border-color: var(--border);">
-        <h3 id="detailName" class="heading-sm truncate" style="color: var(--text-faint);">Select an account</h3>
-        <span id="detailStatus" class="pill pill-idle hidden"></span>
-        <span id="detailScore" class="hidden ml-auto text-xs font-bold px-2.5 py-1 rounded-md mono tnum"
-              style="background: linear-gradient(180deg, #fafafa, #d4d4d8); color: #18181b;
-                     box-shadow: 0 0 0 1px rgba(255,255,255,0.10) inset;"></span>
-      </div>
-
-      <!-- CREW — live agent grid -->
-      <div class="px-5 py-5 border-b" style="border-color: var(--border);
-                  background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent 80%);">
-        <div class="flex items-center justify-between gap-3 mb-3.5">
-          <div class="flex items-center gap-2 min-w-0">
-            <span class="eyebrow">Crew</span>
-            <span class="indicator ind-running breathe"></span>
-            <span class="text-[10.5px] mono truncate" style="color: var(--text-faint);">8 agents</span>
-          </div>
-          <div class="hidden md:flex items-center gap-3 text-[10px] shrink-0" style="color: var(--text-faint);">
-            <span class="flex items-center gap-1.5"><span class="indicator ind-running breathe"></span>thinking</span>
-            <span class="flex items-center gap-1.5"><span class="indicator ind-done"></span>ready</span>
-            <span class="flex items-center gap-1.5"><span class="indicator ind-skipped"></span>skipped</span>
-          </div>
-        </div>
-        <div id="pipelineDiagram"></div>
-      </div>
-
-      <!-- TABS -->
-      <div class="px-5 border-b" style="border-color: var(--border);">
-        <nav class="flex">
-          <button data-tab="log"        class="tab-btn">Log</button>
-          <button data-tab="hypothesis" class="tab-btn">Hypothesis</button>
-          <button data-tab="evidence"   class="tab-btn">Evidence</button>
-          <button data-tab="angles"     class="tab-btn">Angles</button>
-          <button data-tab="pipedrive"  class="tab-btn">Pipedrive</button>
-        </nav>
-      </div>
-      <div class="overflow-y-auto scroll-area px-5 py-5 text-[13.5px] max-h-[55vh]">
-        <div id="tab-log"        class="tab-pane hidden"></div>
-        <div id="tab-hypothesis" class="tab-pane hidden"></div>
-        <div id="tab-evidence"   class="tab-pane hidden"></div>
-        <div id="tab-angles"     class="tab-pane hidden"></div>
-        <div id="tab-pipedrive"  class="tab-pane hidden"></div>
-      </div>
-    </div>
-  </section>
-
-  </div>  <!-- /rightCol -->
-</div>  <!-- /app-grid -->
-</main>
-
+<!-- =========================================================
+     JAVASCRIPT
+     ========================================================= -->
 <script>
-/* ============================================================
-   STABLE-DOM RENDERING
-   - Build each persistent piece of UI ONCE.
-   - On every poll, mutate text/classes/attributes in place.
-   - Animations fire only on first appearance (added by JS).
-   ============================================================ */
-
-const $ = (id) => document.getElementById(id);
-
-const AGENTS = [
-  { key: "homepage_scout",            codename: "Atlas",           role: "Reads the homepage",            c1: "#6366f1", c2: "#a78bfa" },
-  { key: "news_scout",                codename: "Echo",            role: "Tracks recent news",            c1: "#ec4899", c2: "#f472b6" },
-  { key: "linkedin_analyst",          codename: "Talent",          role: "Maps hiring patterns",          c1: "#0ea5e9", c2: "#38bdf8" },
-  { key: "signal_extractor",          codename: "Sift",            role: "Distills news + hiring signals",c1: "#14b8a6", c2: "#5eead4" },
-  { key: "hypothesis_builder",        codename: "Oracle",          role: "Builds 1-page hypothesis",      c1: "#a855f7", c2: "#c084fc" },
-  { key: "hypothesis_builder_pass_2", codename: "Oracle (retry)",  role: "New angle on retry", optional: true, c1: "#a855f7", c2: "#c084fc" },
-  { key: "scorer",                    codename: "Verdict",         role: "Scores fit",                    c1: "#f59e0b", c2: "#fbbf24" },
-  { key: "scorer_pass_2",             codename: "Verdict (retry)", role: "Re-scores after retry", optional: true, c1: "#f59e0b", c2: "#fbbf24" },
-  { key: "outreach_angles",           codename: "Pitch",           role: "Generates 12 angles",           c1: "#ef4444", c2: "#f87171" },
-  { key: "linkedin_search",           codename: "Hunter",          role: "Builds Sales Nav searches",     c1: "#22c55e", c2: "#4ade80" },
-  { key: "dossier",                   codename: "Scribe",          role: "Writes the briefing",           c1: "#8b5cf6", c2: "#a78bfa" },
-  { key: "pipedrive",                 codename: "Ledger",          role: "Syncs to CRM",                  c1: "#10b981", c2: "#34d399" },
-];
-const ROSTER = AGENTS.filter(a => !a.optional);
-const AGENT_BY_KEY = Object.fromEntries(AGENTS.map(a => [a.key, a]));
-
-/* Dark-theme palette for SVG pipeline */
-const STROKE = { pending: "rgba(255,255,255,0.16)", running: "#818cf8", done: "#34d399",
-                 skipped: "rgba(255,255,255,0.10)", error: "#fb7185" };
-const FILL   = { pending: "rgba(20,20,28,0.6)",     running: "rgba(99,102,241,0.12)",
-                 done:    "rgba(52,211,153,0.10)",  skipped: "rgba(20,20,28,0.3)",
-                 error:   "rgba(251,113,133,0.10)" };
-const TEXTCL = { pending: "#a1a1aa", running: "#c7d2fe", done: "#6ee7b7",
-                 skipped: "#52525b", error: "#fda4af" };
-
-/* ============ APP STATE ============ */
+// ── State ─────────────────────────────────────────────────────────────────────
 let currentRunId = null;
-let selectedAccountId = null;
 let pollInterval = null;
-let activeTab = "log";
+let selectedAccountId = null;
+let shaderInited = { hero: false, detail: false };
 
-const acctRows = new Map();
-const chipEls  = {};
-let   pipelineBuilt = false;
-const pipelineEls = {};
-const edgeEls = {};
-const particleEls = {};   // traveling "message" dots per edge
+// ── WebGL Shader ──────────────────────────────────────────────────────────────
+function initShader(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || canvas._shaderInited) return;
+  canvas._shaderInited = true;
 
-const stateCache = {};
-const tabHashes = {};
-const seenLogIds = new Set();
-
-/* ============ HELPERS ============ */
-function fmtTime(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return isNaN(d) ? iso : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
-function esc(s) { return (s ?? "").toString().replace(/[<>&"]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c])); }
-function pillCls(status) { return `pill pill-${status || "idle"}`; }
-function hashOf(obj) { try { return JSON.stringify(obj); } catch { return String(Math.random()); } }
-function initials(name) { return (name || "").split(/\s|\(/)[0].slice(0,2).toUpperCase(); }
-
-/* ============ TABS ============ */
-function setTab(tab) {
-  activeTab = tab;
-  document.querySelectorAll(".tab-btn").forEach((b) => {
-    b.classList.toggle("active", b.dataset.tab === tab);
-  });
-  document.querySelectorAll(".tab-pane").forEach((p) => {
-    p.classList.toggle("hidden", p.id !== `tab-${tab}`);
-  });
-}
-document.querySelectorAll(".tab-btn").forEach((b) =>
-  b.addEventListener("click", () => setTab(b.dataset.tab))
-);
-setTab("log");
-
-/* ============ STAGE STATE INFERENCE ============ */
-function inferStageStates(detail, logs) {
-  const stepCounts = {};
-  for (const l of logs || []) stepCounts[l.step] = (stepCounts[l.step] || 0) + 1;
-  const has = (f) => detail[f] != null && detail[f] !== "" &&
-                     !(Array.isArray(detail[f]) && detail[f].length === 0);
-
-  const done = {
-    homepage_scout:             (stepCounts.homepage_scout             || 0) >= 2 || has("homepage"),
-    news_scout:                 (stepCounts.news_scout                 || 0) >= 2,
-    linkedin_analyst:           (stepCounts.linkedin_analyst           || 0) >= 2,
-    signal_extractor:           (stepCounts.signal_extractor           || 0) >= 2 || has("news") || has("linkedin"),
-    hypothesis_builder:         (stepCounts.hypothesis_builder         || 0) >= 2 || has("hypothesis_1"),
-    hypothesis_builder_pass_2:  (stepCounts.hypothesis_builder_pass_2  || 0) >= 2 || has("hypothesis_2"),
-    scorer:                     (stepCounts.scorer                     || 0) >= 2 || has("eval_1"),
-    scorer_pass_2:              (stepCounts.scorer_pass_2              || 0) >= 2 || has("eval_2"),
-    outreach_angles:            (stepCounts.outreach_angles            || 0) >= 2 || has("outreach_angles"),
-    linkedin_search:            (stepCounts.linkedin_search            || 0) >= 2 || has("search_commands"),
-    dossier:                    (stepCounts.dossier                    || 0) >= 2 || has("dossier"),
-    pipedrive:                  !!detail.pipedrive_org_id,
-  };
-
-  const states = {};
-  for (const a of AGENTS) {
-    if (done[a.key]) states[a.key] = "done";
-    else if ((stepCounts[a.key] || 0) >= 1) states[a.key] = "running";
-    else states[a.key] = "pending";
+  function syncSize() {
+    const w = canvas.clientWidth || 800, h = canvas.clientHeight || 240;
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   }
-  const ev1 = detail.eval_1;
-  if (ev1 && typeof ev1 === "object" && ev1.relevant === true) {
-    if (states.hypothesis_builder_pass_2 === "pending") states.hypothesis_builder_pass_2 = "skipped";
-    if (states.scorer_pass_2             === "pending") states.scorer_pass_2             = "skipped";
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(syncSize).observe(canvas);
+  syncSize();
+
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+
+  const vs = `attribute vec2 a_position;varying vec2 v_tc;void main(){v_tc=a_position*.5+.5;gl_Position=vec4(a_position,0,1);}`;
+  const fs = `precision highp float;
+uniform float u_time;uniform vec2 u_res;uniform vec2 u_mouse;varying vec2 v_tc;
+vec3 mod289(vec3 x){return x-floor(x*(1./289.))*289.;}
+vec2 mod289(vec2 x){return x-floor(x*(1./289.))*289.;}
+vec3 permute(vec3 x){return mod289(((x*34.)+1.)*x);}
+float snoise(vec2 v){const vec4 C=vec4(.211,.366,-.577,.024);
+  vec2 i=floor(v+dot(v,C.yy));vec2 x0=v-i+dot(i,C.xx);
+  vec2 i1=(x0.x>x0.y)?vec2(1,0):vec2(0,1);
+  vec4 x12=x0.xyxy+C.xxzz;x12.xy-=i1;i=mod289(i);
+  vec3 p=permute(permute(i.y+vec3(0,i1.y,1))+i.x+vec3(0,i1.x,1));
+  vec3 m=max(.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.);
+  m*=m;m*=m;vec3 a0=2.*fract(p*C.www)-1.;vec3 h=abs(a0)-.5;
+  vec3 a1=a0-floor(a0+.5);vec3 g=a1*vec3(x0.x,x12.xz)+h*vec3(x0.y,x12.yw);
+  m*=1.793-.854*(a1*a1+h*h);return 130.*dot(m,g);}
+void main(){
+  vec2 uv=v_tc;vec2 mouse=u_mouse/u_res;
+  vec3 c1=vec3(.043,.09,.188),c2=vec3(.275,.282,.831),c3=vec3(.827,.863,1.);
+  float n1=snoise(uv*3.+u_time*.1),n2=snoise(uv*5.-u_time*.15+mouse);
+  vec3 col=mix(c1,c2,n1*.5+.5);col=mix(col,c3,n2*.3);
+  float pulse=sin(u_time*2.)*.5+.5;
+  col+=step(.98,fract(n1*10.+u_time*.5))*pulse*c2;
+  gl_FragColor=vec4(col,.45);}`;
+
+  function cs(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s); return s;
   }
-  if (detail.status === "dropped") {
-    for (const k of ["outreach_angles", "linkedin_search", "dossier", "pipedrive"])
-      if (states[k] === "pending") states[k] = "skipped";
-  }
-  const hadError = !!detail.error_message || (stepCounts.error || 0) > 0;
-  if (detail.status === "error" || (hadError && detail.status !== "enriched")) {
-    for (const a of AGENTS) if (states[a.key] === "running") states[a.key] = "error";
-    for (const a of AGENTS) if (states[a.key] === "pending") states[a.key] = "skipped";
-  }
-  return states;
-}
+  const prog = gl.createProgram();
+  gl.attachShader(prog, cs(gl.VERTEX_SHADER, vs));
+  gl.attachShader(prog, cs(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(prog); gl.useProgram(prog);
 
-/* ============ CREW GRID — live agent cards + flow breadcrumb ============ */
-const ROLE_SHORT = {
-  homepage_scout:            "Reads homepage",
-  news_scout:                "Tracks news",
-  linkedin_analyst:          "Hiring patterns",
-  signal_extractor:          "Distills signals",
-  hypothesis_builder:        "Builds hypothesis",
-  hypothesis_builder_pass_2: "Retry · new angle",
-  scorer:                    "Scores fit",
-  scorer_pass_2:             "Re-scores",
-  outreach_angles:           "Writes 12 outreach angles",
-  linkedin_search:           "Sales Nav search",
-  dossier:                   "Writes briefing",
-  pipedrive:                 "Syncs to CRM",
-};
-const SAYING = {
-  homepage_scout:            { running: "scanning homepage",       done: "homepage read" },
-  news_scout:                { running: "searching news feeds",    done: "news indexed" },
-  linkedin_analyst:          { running: "reading job posts",       done: "hiring mapped" },
-  signal_extractor:          { running: "distilling signals",      done: "signals ready" },
-  hypothesis_builder:        { running: "drafting hypothesis",     done: "hypothesis ready" },
-  hypothesis_builder_pass_2: { running: "trying a new angle",      done: "angle ready" },
-  scorer:                    { running: "scoring fit",             done: "scored" },
-  scorer_pass_2:             { running: "re-scoring",              done: "re-scored" },
-  outreach_angles:           { running: "writing 12 angles",       done: "angles ready" },
-  linkedin_search:           { running: "building search queries", done: "queries ready" },
-  dossier:                   { running: "writing briefing",        done: "briefing ready" },
-  pipedrive:                 { running: "creating org + note",     done: "synced to CRM" },
-};
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+  const pos = gl.getAttribLocation(prog, 'a_position');
+  gl.enableVertexAttribArray(pos);
+  gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
 
-function buildPipelineSvg() {
-  if (pipelineBuilt) return;
-  const root = $("pipelineDiagram");
-  root.innerHTML = "";
-
-  // Grid of agent cards (skip retry variants — folded into Oracle/Verdict as badges)
-  const grid = document.createElement("div");
-  grid.className = "crew-grid";
-  root.appendChild(grid);
-
-  for (const a of ROSTER) {
-    const card = document.createElement("div");
-    card.className = "crew-card s-pending";
-    card.style.setProperty("--c1", a.c1);
-    card.style.setProperty("--c2", a.c2);
-    card.innerHTML = `
-      <span class="crew-retry-badge hidden retry-badge">retry…</span>
-      <div class="crew-head">
-        <span class="crew-avatar" style="background: linear-gradient(135deg, ${a.c1}, ${a.c2});">${initials(a.codename)}</span>
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center justify-between gap-2">
-            <div class="crew-name truncate">${a.codename}</div>
-            <span class="crew-status-dot"></span>
-          </div>
-          <div class="crew-role truncate">${a.role}</div>
-        </div>
-      </div>
-      <div class="crew-saying"><span class="say-text">› standing by</span><span class="crew-saying-cursor cursor hidden"></span></div>`;
-    grid.appendChild(card);
-    pipelineEls[a.key] = {
-      card,
-      sayText:    card.querySelector(".say-text"),
-      cursor:     card.querySelector(".cursor"),
-      retryBadge: card.querySelector(".retry-badge"),
-    };
-  }
-
-  // Flow breadcrumb — slim sequence under the grid
-  const FLOW_SEQ = [
-    "homepage_scout", "news_scout", "linkedin_analyst",
-    "signal_extractor", "hypothesis_builder", "scorer",
-    "outreach_angles", "linkedin_search", "dossier", "pipedrive",
-  ];
-  const flow = document.createElement("div");
-  flow.className = "crew-flow";
-  for (let i = 0; i < FLOW_SEQ.length; i++) {
-    const k = FLOW_SEQ[i];
-    const a = AGENT_BY_KEY[k];
-    const step = document.createElement("span");
-    step.className = "step";
-    step.dataset.key = k;
-    step.textContent = a.codename.toLowerCase();
-    flow.appendChild(step);
-    if (i < FLOW_SEQ.length - 1) {
-      const sep = document.createElement("span");
-      sep.className = "sep";
-      sep.textContent = "→";
-      flow.appendChild(sep);
+  const uTime = gl.getUniformLocation(prog, 'u_time');
+  const uRes  = gl.getUniformLocation(prog, 'u_res');
+  const uMouse= gl.getUniformLocation(prog, 'u_mouse');
+  let mouse = {x: 0, y: 0};
+  document.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width && rect.height) {
+      mouse.x = ((e.clientX - rect.left) / rect.width) * canvas.width;
+      mouse.y = (1 - (e.clientY - rect.top) / rect.height) * canvas.height;
     }
-  }
-  root.appendChild(flow);
-  pipelineEls.__flow = flow;
+  });
 
-  pipelineBuilt = true;
+  function render(t) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    if (uTime) gl.uniform1f(uTime, t * 0.001);
+    if (uRes)  gl.uniform2f(uRes, canvas.width, canvas.height);
+    if (uMouse)gl.uniform2f(uMouse, mouse.x, mouse.y);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(render);
+  }
+  render(0);
 }
 
+// ── Navigation ─────────────────────────────────────────────────────────────────
+const NAV_MAP = {
+  setup:        'navSetup',
+  dashboard:    'navDashboard',
+  intelligence: 'navIntelligence',
+  stakeholders: 'navStakeholders',
+  library:      'navLibrary',
+};
 
-function updatePipelineDiagram(states) {
-  buildPipelineSvg();
+const COMING_SOON = {
+  intelligence: { icon: 'psychology',    title: 'Intelligence Feed' },
+  stakeholders: { icon: 'hub',           title: 'Stakeholder Mapping' },
+  library:      { icon: 'folder_shared', title: 'Report Library' },
+};
 
-  // Main 10 cards
-  for (const a of ROSTER) {
-    const st = states[a.key] || "pending";
-    const el = pipelineEls[a.key];
-    if (!el) continue;
-
-    el.card.className = `crew-card s-${st}`;
-    el.card.style.setProperty("--c1", a.c1);
-    el.card.style.setProperty("--c2", a.c2);
-
-    let sayTxt;
-    if (st === "running")      sayTxt = "› " + (SAYING[a.key]?.running || "working");
-    else if (st === "done")    sayTxt = "✓ " + (SAYING[a.key]?.done    || "done");
-    else if (st === "error")   sayTxt = "× failed";
-    else if (st === "skipped") sayTxt = "— skipped";
-    else                       sayTxt = "› standing by";
-    el.sayText.textContent = sayTxt;
-    el.cursor.classList.toggle("hidden", st !== "running");
+function showView(view) {
+  const isComingSoon = view in COMING_SOON;
+  document.getElementById('setupPanel').classList.toggle('hidden', view !== 'setup');
+  document.getElementById('dashboardPanel').classList.toggle('hidden', view !== 'dashboard');
+  const csPanel = document.getElementById('comingSoonPanel');
+  csPanel.classList.toggle('hidden', !isComingSoon);
+  if (isComingSoon) {
+    document.getElementById('comingSoonIcon').textContent = COMING_SOON[view].icon;
+    document.getElementById('comingSoonTitle').textContent = COMING_SOON[view].title;
   }
 
-  // Retry badges fold into Oracle (hypothesis_builder) and Verdict (scorer) cards
-  const retryMap = [
-    ["hypothesis_builder", "hypothesis_builder_pass_2"],
-    ["scorer",             "scorer_pass_2"],
-  ];
-  for (const [mainKey, retryKey] of retryMap) {
-    const rst = states[retryKey];
-    const badge = pipelineEls[mainKey]?.retryBadge;
-    if (!badge) continue;
-    if (!rst || rst === "pending" || rst === "skipped") {
-      badge.classList.add("hidden");
+  // Update sidebar active state
+  const activeClasses = ['bg-secondary-container/30', 'text-secondary'];
+  const inactiveClasses = ['text-on-surface-variant', 'hover:bg-surface-container-high'];
+  Object.entries(NAV_MAP).forEach(([v, id]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (v === view) {
+      el.classList.remove(...inactiveClasses);
+      el.classList.add(...activeClasses);
+      // Switch icon to filled
+      const icon = el.querySelector('.material-symbols-outlined');
+      if (icon) icon.style.fontVariationSettings = "'FILL' 1";
     } else {
-      badge.classList.remove("hidden");
-      badge.classList.toggle("done", rst === "done");
-      badge.textContent = rst === "running" ? "retry…"
-                       :  rst === "done"    ? "retry ✓"
-                       :                      "retry !";
+      el.classList.remove(...activeClasses);
+      el.classList.add(...inactiveClasses);
+      const icon = el.querySelector('.material-symbols-outlined');
+      if (icon) icon.style.fontVariationSettings = "'FILL' 0";
     }
-  }
-
-  // Flow breadcrumb — each step lights up by state
-  const flow = pipelineEls.__flow;
-  if (flow) {
-    for (const step of flow.querySelectorAll(".step")) {
-      const k = step.dataset.key;
-      step.className = `step s-${states[k] || "pending"}`;
-    }
-  }
-}
-
-/* ============ AGENT CHIPS ============ */
-function buildAgentChips() {
-  if (Object.keys(chipEls).length) return;
-  const container = $("agentChips");
-  if (!container) return;        // slim strip — no chip grid present
-  container.innerHTML = "";
-  for (const a of ROSTER) {
-    const card = document.createElement("div");
-    card.className = "agent-chip";
-    card.innerHTML = `
-      <div class="flex items-start gap-2.5 relative z-10">
-        <span class="agent-avatar" style="--c1:${a.c1}; --c2:${a.c2};">${initials(a.codename)}</span>
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-1.5">
-            <div class="codename truncate"></div>
-            <span class="indicator ind-pending chip-dot"></span>
-          </div>
-          <div class="role"></div>
-        </div>
-      </div>
-      <div class="count relative z-10"><b class="chip-running">0</b> running · <b class="chip-done">0</b> done</div>`;
-    card.querySelector(".codename").textContent = a.codename;
-    card.querySelector(".role").textContent = a.role;
-    container.appendChild(card);
-    chipEls[a.key] = {
-      card,
-      dot:     card.querySelector(".chip-dot"),
-      running: card.querySelector(".chip-running"),
-      done:    card.querySelector(".chip-done"),
-    };
-  }
-}
-
-function updateAgentChips(globalCounts) {
-  buildAgentChips();
-  if (!Object.keys(chipEls).length) return;
-  for (const a of ROSTER) {
-    const c = globalCounts[a.key] || { running: 0, done: 0 };
-    const el = chipEls[a.key];
-    const active = c.running > 0;
-    const fullyDone = !active && c.done > 0;
-    el.card.classList.toggle("active", active);
-    el.card.classList.toggle("done", fullyDone);
-    el.dot.className = `indicator chip-dot ${active ? "ind-running breathe" : fullyDone ? "ind-done" : "ind-pending"}`;
-    if (el.running.textContent !== String(c.running)) el.running.textContent = c.running;
-    if (el.done.textContent    !== String(c.done))    el.done.textContent    = c.done;
-  }
-}
-
-/* ============ ACCOUNT LIST ============ */
-function ensureAccountRow(acc) {
-  let entry = acctRows.get(acc.id);
-  if (entry) return entry;
-
-  const li = document.createElement("li");
-  li.dataset.id = acc.id;
-  li.className = "acct-row appear";
-  li.innerHTML = `
-    <div class="flex items-center justify-between gap-2 mb-1">
-      <div class="flex items-center min-w-0 gap-2">
-        <span class="acct-name text-[13.5px] font-semibold truncate" style="color: var(--text);"></span>
-        <span class="acct-score mono text-[10px] font-bold px-1.5 py-0.5 rounded tnum hidden"
-              style="background: linear-gradient(180deg, #fafafa, #d4d4d8); color: #18181b;"></span>
-      </div>
-      <span class="acct-pill"></span>
-    </div>
-    <div class="acct-domain text-[11px] truncate mono" style="color: var(--text-faint);"></div>
-    <div class="acct-dots mt-2 flex gap-1"></div>`;
-  const dotsContainer = li.querySelector(".acct-dots");
-  const dots = {};
-  for (const a of ROSTER) {
-    const d = document.createElement("span");
-    d.className = "mini-dot";
-    d.title = `${a.codename}: pending`;
-    dotsContainer.appendChild(d);
-    dots[a.key] = d;
-  }
-  li.addEventListener("click", () => {
-    selectedAccountId = acc.id;
-    acctRows.forEach((e, id) => e.li.classList.toggle("selected", id === selectedAccountId));
-    refreshDetail();
   });
-  $("accountList").appendChild(li);
 
-  entry = {
-    li,
-    els: {
-      name:   li.querySelector(".acct-name"),
-      score:  li.querySelector(".acct-score"),
-      pill:   li.querySelector(".acct-pill"),
-      domain: li.querySelector(".acct-domain"),
-      dots,
-    },
-    lastStatus: null,
-    lastDomain: null,
-    lastName: null,
-    lastScore: null,
-  };
-  acctRows.set(acc.id, entry);
-  return entry;
+  if (view === 'setup' && !shaderInited.hero) {
+    shaderInited.hero = true;
+    requestAnimationFrame(() => initShader('heroShader'));
+  }
 }
 
-function updateAccountRow(acc) {
-  const entry = ensureAccountRow(acc);
-  const { els } = entry;
-  if (entry.lastName !== acc.name)     { els.name.textContent = acc.name; entry.lastName = acc.name; }
-  if (entry.lastDomain !== acc.domain) { els.domain.textContent = acc.domain || "—"; entry.lastDomain = acc.domain; }
-  if (entry.lastStatus !== acc.status) {
-    entry.li.className = `acct-row s-${acc.status} ${selectedAccountId === acc.id ? "selected" : ""}`;
-    els.pill.className = pillCls(acc.status);
-    els.pill.textContent = acc.status;
-    entry.lastStatus = acc.status;
-  }
-  const score = acc.score == null ? null : acc.score;
-  if (entry.lastScore !== score) {
-    if (score == null) { els.score.classList.add("hidden"); els.score.textContent = ""; }
-    else { els.score.classList.remove("hidden"); els.score.textContent = score; }
-    entry.lastScore = score;
-  }
-  const states = stateCache[acc.id] || {};
-  for (const a of ROSTER) {
-    const st = states[a.key] || "pending";
-    const dot = els.dots[a.key];
-    const cls = `mini-dot s-${st} ${st === "running" ? "breathe" : ""}`;
-    if (dot.className !== cls) {
-      dot.className = cls;
-      dot.title = `${a.codename}: ${st}`;
+// ── Chat ───────────────────────────────────────────────────────────────────────
+function openChat() { document.getElementById('chatModal').classList.add('open'); }
+function closeChat() { document.getElementById('chatModal').classList.remove('open'); }
+function sendQuickChat(msg) { document.getElementById('chatInput').value = msg; sendChat(); }
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  appendChatMsg('user', msg);
+  handleChatCommand(msg.toLowerCase());
+}
+
+function appendChatMsg(role, text, isHtml) {
+  const scroll = document.getElementById('chatScroll');
+  const div = document.createElement('div');
+  div.className = 'flex gap-2 ' + (role === 'user' ? 'justify-end' : 'justify-start');
+  const bub = role === 'user'
+    ? 'bg-secondary/10 border border-secondary/20 text-on-surface rounded-xl rounded-tr-sm'
+    : 'bg-surface-container border border-outline-variant/20 text-on-surface rounded-xl rounded-tl-sm';
+  div.innerHTML = (role !== 'user'
+    ? '<div class="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-on-secondary text-[10px] font-bold shrink-0 mt-0.5">AI</div>'
+    : '')
+    + `<div class="max-w-[80%] px-4 py-2.5 ${bub} text-[14px] leading-relaxed">${isHtml ? text : escHtml(text)}</div>`
+    + (role === 'user'
+    ? '<div class="w-7 h-7 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant text-[10px] font-bold shrink-0 mt-0.5">YOU</div>'
+    : '');
+  scroll.appendChild(div);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+function handleChatCommand(cmd) {
+  if (cmd.includes('start') || cmd.includes('run')) {
+    appendChatMsg('agent', 'Opening pipeline setup. Fill in the Sheet ID and value prop, then click <b>Start Pipeline</b>.', true);
+    closeChat(); showView('setup');
+  } else if (cmd.includes('status')) {
+    if (currentRunId) {
+      fetch(`/api/runs/${currentRunId}`).then(r => r.json()).then(run => {
+        appendChatMsg('agent', `Run #${run.id}: <b>${run.status}</b> — ${run.done}/${run.total} accounts. Enriched: ${run.enriched}, Dropped: ${run.dropped}, Errors: ${run.errors}.`, true);
+      }).catch(() => appendChatMsg('agent', `Run #${currentRunId} is active. Check the dashboard for live status.`));
+    } else {
+      appendChatMsg('agent', 'No active run. Say <b>start a run</b> to begin.', true);
     }
+  } else if (cmd.includes('preview') || cmd.includes('sheet')) {
+    appendChatMsg('agent', 'Opening setup panel. Click <b>Preview Sheet</b> to see your accounts.', true);
+    closeChat(); showView('setup');
+  } else if (cmd.includes('cancel')) {
+    cancelRun();
+    appendChatMsg('agent', 'Cancellation request sent.');
+  } else if (cmd.includes('help')) {
+    appendChatMsg('agent', 'Commands: <b>start a run</b> · <b>status</b> · <b>preview sheet</b> · <b>cancel</b>', true);
+  } else {
+    appendChatMsg('agent', 'I\'m your AI orchestrator. Try: <b>start a run</b>, <b>status</b>, or <b>help</b>.', true);
   }
 }
 
-function updateAccountList(accounts) {
-  $("acctCount").textContent = `${accounts.length} total`;
-  let pending = 0, running = 0;
-  const validIds = new Set(accounts.map(a => a.id));
-  for (const id of [...acctRows.keys()]) {
-    if (!validIds.has(id)) {
-      acctRows.get(id).li.remove();
-      acctRows.delete(id);
-    }
-  }
-  for (const a of accounts) {
-    updateAccountRow(a);
-    if (a.status === "pending") pending++;
-    if (a.status === "running") running++;
-  }
-  $("cntPending").textContent = pending;
-  $("cntRunning").textContent = running;
-
-  const counts = {};
-  for (const acc of accounts) {
-    const sts = stateCache[acc.id] || {};
-    for (const a of ROSTER) {
-      if (!counts[a.key]) counts[a.key] = { running: 0, done: 0 };
-      const st = sts[a.key];
-      if (st === "running") counts[a.key].running++;
-      if (st === "done")    counts[a.key].done++;
-    }
-  }
-  updateAgentChips(counts);
-}
-
-/* ============ DETAIL PANEL ============ */
-
-/* ===== Inline icons used in premium output ===== */
-const ICON = {
-  target:    '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>',
-  trend:     '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-9"/><path d="M14 6h6v6"/></svg>',
-  spark:     '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6z"/></svg>',
-  users:     '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-  warning:   '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>',
-  signal:    '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h2"/><path d="M6 8a6 6 0 0 1 12 0v4a6 6 0 0 1-12 0z"/><path d="M20 12h2"/></svg>',
-  briefcase: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
-  rocket:    '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 9.5L9.5 14.5"/><path d="M16 3l5 5-8 13H8l-5-5z"/><circle cx="13" cy="11" r="1.5"/></svg>',
-  link:      '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>',
-  check:     '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
-};
-
-/* small helpers */
-function _bul(items) {
-  if (!items || !items.length) return `<div class="empty-inline">— no signals</div>`;
-  return `<ul class="bul">${items.map(i =>
-    `<li>${esc(typeof i === "string" ? i : JSON.stringify(i))}</li>`).join("")}</ul>`;
-}
-function _tile(icon, title, items) {
-  return `<div class="sec-tile">
-    <div class="sec-head"><span class="ico">${icon}</span>${esc(title)}</div>
-    ${_bul(items)}
-  </div>`;
-}
-function _byline(initials, c1, c2, label, sub) {
-  return `<div class="agent-byline">
-    <span class="av" style="background: linear-gradient(135deg, ${c1}, ${c2});">${esc(initials)}</span>
-    <span class="ttl">${esc(label)}</span>
-    ${sub ? `<span class="sub">${esc(sub)}</span>` : ""}
-  </div>`;
-}
-
-/* ============ HYPOTHESIS ============ */
-function renderHypothesisHtml(detail) {
-  const h1 = detail.hypothesis_1, h2 = detail.hypothesis_2;
-  if (!h1 && !h2) return `<div class="empty">Oracle hasn't run yet.</div>`;
-  const renderOne = (h, label) => {
-    if (!h) return "";
-    const wedges = (h.wedge_use_cases || []).map((w, i) => `
-      <div class="wedge-card">
-        <span class="num">${(i + 1).toString().padStart(2, "0")}</span>
-        <div>
-          <div class="title">${esc(w.use_case || "")}</div>
-          ${w.why_easy_entry ? `<div class="sub">${esc(w.why_easy_entry)}</div>` : ""}
-        </div>
-      </div>`).join("");
-    return `
-      <div class="doc">
-        <div class="doc-hero">
-          <span class="eyebrow-tag">${esc(label)}${h.angle ? ` · ${esc(h.angle)}` : ""}</span>
-          <h1>${esc(h.headline || "Untitled hypothesis")}</h1>
-        </div>
-        ${h.where_we_fit ? `<div class="pull-quote">${esc(h.where_we_fit)}</div>` : ""}
-        <div class="sec-grid">
-          ${_tile(ICON.target,  "Likely cares",        h.likely_cares)}
-          ${_tile(ICON.trend,   "Likely initiatives",  h.likely_initiatives)}
-          ${_tile(ICON.spark,   "Expected KPIs",       h.expected_kpis)}
-          ${_tile(ICON.users,   "Top stakeholders",    h.top_stakeholders)}
-          ${_tile(ICON.warning, "Likely objections",   h.likely_objections)}
-          ${_tile(ICON.signal,  "Public signals",      h.public_signals)}
-        </div>
-        ${wedges ? `
-          <div>
-            <div class="agent-byline">
-              <span class="av" style="background: linear-gradient(135deg, #a855f7, #c084fc);">WE</span>
-              <span class="ttl">Wedge use cases</span>
-              <span class="sub">${(h.wedge_use_cases || []).length} ways in</span>
-            </div>
-            <div class="wedge-list">${wedges}</div>
-          </div>` : ""}
-      </div>`;
-  };
-  return [h1 && renderOne(h1, "Pass 1"), h2 && renderOne(h2, "Pass 2 · retry")]
-    .filter(Boolean).join("");
-}
-
-/* ============ EVIDENCE ============ */
-function renderEvidenceHtml(d) {
-  if (!d.news && !d.linkedin && !d.homepage)
-    return `<div class="empty">Atlas, Echo, and Talent haven't reported yet.</div>`;
-  const out = [];
-
-  if (d.news) {
-    const n = d.news;
-    const kpis = [
-      ["Funding",        n.funding,        ICON.trend],
-      ["Product launch", n.product_launch, ICON.rocket],
-      ["Exec change",    n.exec_change,    ICON.users],
-      ["Growth signal",  n.growth_signal,  ICON.signal],
-    ];
-    out.push(`<section class="mb-7">
-      ${_byline("EC", "#ec4899", "#f472b6", "Echo · News signals",
-                (n.sources || []).length ? `${n.sources.length} sources` : "")}
-      ${n.headline ? `<div class="pull-quote mb-4">${esc(n.headline)}</div>` : ""}
-      <div class="kpi-row">
-        ${kpis.map(([lbl, val, ic]) => `
-          <div class="kpi-card ${val ? "flag" : "empty"}">
-            <div class="lbl">${ic}${esc(lbl)}</div>
-            <div class="val">${val ? esc(val) : "no signal"}</div>
-          </div>`).join("")}
-      </div>
-      ${(n.sources && n.sources.length) ? `
-        <div class="mt-4">
-          <div class="agent-byline" style="margin-bottom: 9px;">
-            <span class="ttl" style="margin-left: 0;">Sources</span>
-          </div>
-          <div class="src-list">
-            ${n.sources.map((s, i) => `
-              <a href="${esc(s)}" target="_blank" rel="noopener" class="src-link">
-                <span class="num">${(i + 1).toString().padStart(2, "0")}</span>
-                <span class="truncate">${esc(s)}</span>
-                <span class="ext">${ICON.link}</span>
-              </a>`).join("")}
-          </div>
-        </div>` : ""}
-    </section>`);
-  }
-
-  if (d.linkedin) {
-    const l = d.linkedin;
-    out.push(`<section class="mb-7">
-      ${_byline("TA", "#0ea5e9", "#38bdf8", "Talent · Hiring signals",
-                (l.open_roles || []).length ? `${l.open_roles.length} open roles` : "")}
-      ${l.team_growth ? `<div class="pull-quote mb-4">${esc(l.team_growth)}</div>` : ""}
-      ${(l.open_roles && l.open_roles.length) ? `
-        <div class="sec-tile mb-3">
-          <div class="sec-head"><span class="ico">${ICON.briefcase}</span>Open roles</div>
-          <div class="chips">${l.open_roles.map(r => `<span class="chip-tag accent">${esc(r)}</span>`).join("")}</div>
-        </div>` : ""}
-      <div class="sec-grid">
-        ${_tile(ICON.warning, "Pain signals",       l.pain_signals)}
-        ${_tile(ICON.trend,   "Likely initiatives", l.likely_initiatives)}
-      </div>
-    </section>`);
-  }
-
-  if (d.homepage) {
-    const ex = d.homepage.slice(0, 1400);
-    const truncated = d.homepage.length > 1400;
-    out.push(`<section>
-      ${_byline("AT", "#6366f1", "#a78bfa", "Atlas · Homepage excerpt",
-                `${d.homepage.length.toLocaleString()} chars`)}
-      <pre class="code-block" style="font-size: 12px; max-height: 320px; overflow-y: auto;">${esc(ex)}${
-        truncated ? "\n\n… (truncated)" : ""}</pre>
-    </section>`);
-  }
-
-  return out.join("");
-}
-
-/* ============ ANGLES + EVALUATION ============ */
-function _scoreRing(score) {
-  const sc = Math.max(0, Math.min(10, Number(score) || 0));
-  const R = 32, C = 2 * Math.PI * R;
-  const dash = (sc / 10) * C;
-  const gid = `sg${Math.floor(Math.random() * 1e9)}`;
-  return `<div class="score-ring">
-    <svg width="78" height="78" viewBox="0 0 78 78">
-      <defs>
-        <linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%"   stop-color="#818cf8"/>
-          <stop offset="100%" stop-color="#34d399"/>
-        </linearGradient>
-      </defs>
-      <circle class="ring-bg" cx="39" cy="39" r="${R}" fill="none" stroke-width="6"/>
-      <circle class="ring-fg" cx="39" cy="39" r="${R}" fill="none" stroke-width="6"
-        stroke="url(#${gid})"
-        stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${(C - dash).toFixed(2)}"/>
-    </svg>
-    <div class="score-num">${sc}<small>/10</small></div>
-  </div>`;
-}
-
-function _evalCard(e, label) {
-  if (!e) return "";
-  return `<div class="eval-card mb-4">
-    <div class="flex items-center justify-between gap-3 mb-3">
-      <span class="eyebrow">${esc(label)}</span>
-      ${e.relevant
-        ? '<span class="pill pill-enriched">qualified</span>'
-        : '<span class="pill pill-pending">below threshold</span>'}
-    </div>
-    <div class="eval-head">
-      ${_scoreRing(e.score)}
-      <div class="eval-verdict">${esc(e.verdict || "")}</div>
-    </div>
-    <div class="sec-grid mt-4">
-      ${_tile(ICON.target, "Fit reasons",    e.fit_reasons)}
-      ${_tile(ICON.spark,  "Talking points", e.talking_points)}
-    </div>
-    ${e.suggested_angle ? `
-      <div class="mt-4">
-        <div class="agent-byline" style="margin-bottom: 9px;">
-          <span class="ttl" style="margin-left: 0;">Suggested angle</span>
-        </div>
-        <div class="pull-quote">${esc(e.suggested_angle)}</div>
-      </div>` : ""}
-  </div>`;
-}
-
-function renderAnglesHtml(d) {
-  const out = [];
-  if (d.eval_1) out.push(_evalCard(d.eval_1, "Oracle · pass 1"));
-  if (d.eval_2) out.push(_evalCard(d.eval_2, "Oracle · pass 2"));
-  const angles = (d.outreach_angles && d.outreach_angles.angles) || [];
-  if (angles.length) {
-    out.push(`<div class="mt-2">
-      ${_byline("PI", "#ef4444", "#f87171", "Pitch · outreach angles", `${angles.length} angles`)}
-      <div class="angle-stack">
-        ${angles.map((a, i) => `
-          <div class="angle-pro">
-            <div class="ang-head">
-              <span class="ang-num">${(i + 1).toString().padStart(2, "0")}</span>
-              <div class="ang-trigger flex-1">${esc(a.trigger || "")}</div>
-            </div>
-            <div class="ang-meta">
-              <div class="meta-cell">
-                <span class="meta-lbl">Pain</span>
-                <span class="meta-val">${esc(a.pain || "—")}</span>
-              </div>
-              <div class="meta-cell">
-                <span class="meta-lbl">Outcome KPI</span>
-                <span class="meta-val">${esc(a.outcome_kpi || "—")}</span>
-              </div>
-              <div class="meta-cell span-2">
-                <span class="meta-lbl">Proof idea</span>
-                <span class="meta-val">${esc(a.proof_idea || "—")}</span>
-              </div>
-            </div>
-            <div class="ang-pitch">${esc(a.pitch || "")}</div>
-          </div>`).join("")}
-      </div>
-    </div>`);
-  }
-  if (!out.length) return `<div class="empty">Oracle and Pitch haven't run yet.</div>`;
-  return out.join("");
-}
-
-/* ============ PIPEDRIVE ============ */
-function _codePro(label, code) {
-  if (!code) return "";
-  const codeId = `cp${Math.floor(Math.random() * 1e9)}`;
-  const highlighted = esc(code)
-    .replace(/\b(AND|OR|NOT)\b/g, '<span class="kw">$1</span>')
-    .replace(/&quot;([^&]+?)&quot;/g, '<span class="qs">&quot;$1&quot;</span>');
-  return `<div class="mb-3">
-    <div class="code-pro">
-      <div class="code-bar">
-        <span>${esc(label)}</span>
-        <button class="copy-btn"
-          onclick="const t=document.getElementById('${codeId}').innerText;navigator.clipboard.writeText(t);this.textContent='copied';setTimeout(()=>this.textContent='copy',1400)">copy</button>
-      </div>
-      <pre id="${codeId}">${highlighted}</pre>
-    </div>
-  </div>`;
-}
-
-function _fmtInline(s) {
-  return s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-}
-
-function _dossierHtml(text) {
-  if (!text) return `<span class="empty-inline">— no briefing</span>`;
-  const safe = esc(text);
-  const blocks = safe.split(/\n\s*\n/);
-  return blocks.map(blk => {
-    blk = blk.trim();
-    if (!blk) return "";
-    if (/^#{1,3}\s/.test(blk)) {
-      return `<h3>${_fmtInline(blk.replace(/^#{1,3}\s+/, ""))}</h3>`;
-    }
-    const lines = blk.split("\n");
-    if (lines.every(l => /^[-*]\s+/.test(l.trim()))) {
-      const items = lines.map(l => _fmtInline(l.trim().replace(/^[-*]\s+/, "")));
-      return `<ul>${items.map(i => `<li>${i}</li>`).join("")}</ul>`;
-    }
-    return `<p>${_fmtInline(blk).replace(/\n/g, "<br>")}</p>`;
-  }).join("");
-}
-
-function renderPipedriveHtml(d) {
-  const sc = d.search_commands, dossier = d.dossier;
-  const out = [];
-
-  if (sc) {
-    out.push(`<section class="mb-6">
-      ${_byline("HU", "#22c55e", "#4ade80", "Hunter · Sales Nav search",
-                (sc.target_titles || []).length ? `${sc.target_titles.length} titles` : "")}
-      ${(sc.target_titles && sc.target_titles.length) ? `
-        <div class="sec-tile mb-3">
-          <div class="sec-head"><span class="ico">${ICON.users}</span>Target titles</div>
-          <div class="chips">${sc.target_titles.map(t => `<span class="chip-tag accent">${esc(t)}</span>`).join("")}</div>
-        </div>` : ""}
-      ${sc.why_these_titles ? `<div class="pull-quote mb-3">${esc(sc.why_these_titles)}</div>` : ""}
-      ${_codePro("Primary search", sc.primary_search)}
-      ${_codePro("Backup search",  sc.backup_search)}
-    </section>`);
-  }
-
-  if (dossier) {
-    out.push(`<section class="mb-6">
-      ${_byline("SC", "#8b5cf6", "#a78bfa", "Scribe · Pipedrive briefing", "ready to send")}
-      <div class="dossier">${_dossierHtml(dossier.pipedrive_note || "")}</div>
-      ${(dossier.tags && dossier.tags.length) ? `
-        <div class="mt-3">
-          <div class="agent-byline" style="margin-bottom: 9px;">
-            <span class="ttl" style="margin-left: 0;">Tags</span>
-          </div>
-          <div class="chips">${dossier.tags.map(t => `<span class="chip-tag">${esc(t)}</span>`).join("")}</div>
-        </div>` : ""}
-    </section>`);
-  }
-
-  if (d.pipedrive_org_id || d.pipedrive_note_id) {
-    out.push(`<section>
-      ${_byline("LE", "#10b981", "#34d399", "Ledger · CRM", "synced")}
-      <div class="crm-ids">
-        ${d.pipedrive_org_id ? `<div class="crm-id">${ICON.check} Org #${esc(d.pipedrive_org_id)}</div>` : ""}
-        ${d.pipedrive_note_id ? `<div class="crm-id">${ICON.check} Note #${esc(d.pipedrive_note_id)}</div>` : ""}
-      </div>
-    </section>`);
-  }
-
-  if (!out.length) return `<div class="empty">Hunter, Scribe, and Ledger haven't run yet.</div>`;
-  return out.join("");
-}
-
-/* ===== LOG TAB ===== */
-let logListEl = null;
-function ensureLogList() {
-  if (logListEl && logListEl.isConnected) return logListEl;
-  $("tab-log").innerHTML = `<ol id="logList" class="log-list"></ol>`;
-  logListEl = $("logList");
-  return logListEl;
-}
-function appendLogEntry(l) {
-  const list = ensureLogList();
-  const li = document.createElement("li");
-  const a = AGENT_BY_KEY[l.step];
-  const tag = a ? a.codename : (l.step === "error" ? "system" : l.step);
-  const isError = l.step === "error";
-  const c1 = a?.c1 || (isError ? "#fb7185" : "#71717a");
-  const c2 = a?.c2 || (isError ? "#f87171" : "#a1a1aa");
-  li.className = "appear log-entry";
-  li.innerHTML = `
-    <span class="log-avatar" style="background: linear-gradient(135deg, ${c1}, ${c2});">${initials(tag)}</span>
-    <div class="flex-1 min-w-0">
-      <div class="log-meta">
-        <span class="log-name">${esc(tag)}</span>
-        <span class="log-time">${fmtTime(l.created_at)}</span>
-      </div>
-      <div class="log-bubble ${isError ? "error" : ""}">${esc(l.message || "")}</div>
-    </div>`;
-  list.appendChild(li);
-  setTimeout(() => li.classList.remove("appear"), 400);
-}
-function syncLogTab(logs, accountId) {
-  if (logListEl && logListEl.dataset.acct && logListEl.dataset.acct != String(accountId)) {
-    $("tab-log").innerHTML = "";
-    logListEl = null;
-    seenLogIds.clear();
-  }
-  if (!logs.length && !logListEl) {
-    $("tab-log").innerHTML = `<div class="empty">No log entries yet.</div>`;
-    return;
-  }
-  ensureLogList();
-  logListEl.dataset.acct = accountId;
-  for (const l of logs) {
-    const id = l.id != null ? `${accountId}-${l.id}` : `${accountId}-${l.created_at}-${l.step}-${l.message}`;
-    if (seenLogIds.has(id)) continue;
-    seenLogIds.add(id);
-    appendLogEntry(l);
-  }
-}
-
-function syncTabIfChanged(tabId, data, renderer) {
-  const h = hashOf(data);
-  if (tabHashes[tabId] === h) return;
-  tabHashes[tabId] = h;
-  $(tabId).innerHTML = renderer(data);
-}
-
-/* ============ RUN MGMT ============ */
+// ── Setup Panel ───────────────────────────────────────────────────────────────
 async function startRun() {
-  $("setupError").textContent = "";
-  const value_prop = $("valueProp").value.trim();
-  const sheet_id   = $("sheetId").value.trim();
-  if (!value_prop) { $("setupError").textContent = "Value proposition is required."; return; }
+  const sheetId = document.getElementById('sheetId').value.trim();
+  const valueProp = document.getElementById('valueProp').value.trim();
+  const errEl = document.getElementById('setupError');
+  errEl.textContent = '';
+  if (!valueProp) { errEl.textContent = 'Value proposition is required.'; return; }
   try {
-    const res = await fetch("/api/runs", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ value_prop, sheet_id: sheet_id || null }),
+    const res = await fetch('/api/runs', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ sheet_id: sheetId || null, value_prop: valueProp })
     });
-    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.detail || `HTTP ${res.status}`); }
+    if (!res.ok) { const e = await res.json(); errEl.textContent = e.detail || 'Failed to start.'; return; }
     const data = await res.json();
     currentRunId = data.run_id;
-    $("runId").textContent = `run #${currentRunId}`;
-    $("setupPanel").classList.add("hidden");
-    $("agentStrip").classList.remove("hidden");
-    $("agentStrip").classList.add("appear");
-    $("mainPanel").classList.remove("hidden");
-    $("mainPanel").classList.add("appear");
-    $("cancelBtn").classList.remove("hidden");
+    showView('dashboard');
+    setRunStatusPill('running');
+    document.getElementById('cancelBtn').classList.remove('hidden');
+    document.getElementById('batchLabel').classList.remove('hidden');
+    document.getElementById('runIdLabel').classList.remove('hidden');
+    document.getElementById('runStatusPill').classList.remove('hidden');
     startPolling(currentRunId);
-  } catch (e) { $("setupError").textContent = e.message; }
+  } catch(e) { errEl.textContent = 'Network error: ' + e.message; }
 }
 
 async function previewSheet() {
-  $("setupError").textContent = "";
-  const sheet_id = $("sheetId").value.trim();
-  const url = sheet_id ? `/api/sheets/preview?sheet_id=${encodeURIComponent(sheet_id)}` : "/api/sheets/preview";
+  const sheetId = document.getElementById('sheetId').value.trim();
+  const box = document.getElementById('previewBox');
+  box.classList.remove('hidden');
+  box.innerHTML = '<p class="text-[14px] text-on-surface-variant">Loading…</p>';
   try {
+    const url = '/api/sheets/preview' + (sheetId ? `?sheet_id=${encodeURIComponent(sheetId)}` : '');
     const res = await fetch(url);
-    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.detail || `HTTP ${res.status}`); }
+    if (!res.ok) { const e = await res.json(); box.textContent = e.detail; return; }
     const data = await res.json();
-    const rows = (data.preview || []).map((r) =>
-      `<div class="py-0.5"><span class="mono tnum" style="color: var(--text-faint);">${r.row_index}.</span>
-        <b class="ml-1">${esc(r.name)}</b>
-        <span class="ml-1" style="color: var(--text-dim);">${esc(r.domain || "")}</span></div>`).join("");
-    $("previewBox").innerHTML =
-      `<div class="font-semibold mb-2" style="color: var(--text);">${data.total} accounts in sheet</div>${rows || "<i>(no rows)</i>"}`;
-    $("previewBox").classList.remove("hidden");
-  } catch (e) { $("setupError").textContent = e.message; }
+    box.innerHTML = `<p class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-3">${data.total} accounts</p>
+      <table class="w-full text-left">
+        <thead><tr class="border-b border-outline-variant/20">
+          <th class="pb-2 text-[11px] font-mono text-on-surface-variant px-2">Name</th>
+          <th class="pb-2 text-[11px] font-mono text-on-surface-variant px-2">Domain</th>
+        </tr></thead>
+        <tbody class="divide-y divide-outline-variant/10">
+          ${data.preview.map(a => `<tr>
+            <td class="py-2 px-2 text-[14px] text-on-surface">${escHtml(a.name)}</td>
+            <td class="py-2 px-2 text-[14px] text-on-surface-variant">${escHtml(a.domain||'—')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(e) { box.textContent = 'Error: ' + e.message; }
 }
 
 async function cancelRun() {
   if (!currentRunId) return;
-  await fetch(`/api/runs/${currentRunId}`, { method: "DELETE" });
+  await fetch(`/api/runs/${currentRunId}`, { method: 'DELETE' });
+  clearInterval(pollInterval); pollInterval = null;
+  setRunStatusPill('cancelled');
+  document.getElementById('cancelBtn').classList.add('hidden');
 }
 
-/* ============ HEADER / PROGRESS ============ */
-let lastHeader = {};
-function updateHeader(run) {
-  if (lastHeader.status !== run.status) {
-    $("runStatus").textContent = run.status;
-    $("runStatus").className = pillCls(run.status);
-    lastHeader.status = run.status;
-  }
-  if (run.total) {
-    const batches = Math.ceil(run.total / 5);
-    const doneBatches = Math.min(batches, Math.ceil((run.done || 0) / 5));
-    const t = `batch ${doneBatches} / ${batches}`;
-    if (lastHeader.batch !== t) { $("batchProgress").textContent = t; lastHeader.batch = t; }
-  }
-  if (run.status === "completed" || run.status === "cancelled") {
-    $("cancelBtn").classList.add("hidden");
-  }
-}
-let lastProgress = {};
-function updateProgress(run) {
-  const total = run.total || 0, done = run.done || 0;
-  const pct = total ? Math.round((done / total) * 100) : 0;
-  if (lastProgress.pct !== pct) {
-    $("progressBar").style.width = pct + "%";
-    $("progressDetail").textContent = `${pct}% complete`;
-    lastProgress.pct = pct;
-  }
-  const pTxt = `${done} / ${total} accounts`;
-  if (lastProgress.txt !== pTxt) { $("progressPct").textContent = pTxt; lastProgress.txt = pTxt; }
-  if (lastProgress.enriched !== run.enriched) { $("cntEnriched").textContent = run.enriched || 0; lastProgress.enriched = run.enriched; }
-  if (lastProgress.dropped  !== run.dropped)  { $("cntDropped").textContent  = run.dropped  || 0; lastProgress.dropped  = run.dropped;  }
-  if (lastProgress.errors   !== run.errors)   { $("cntError").textContent    = run.errors   || 0; lastProgress.errors   = run.errors;   }
-}
-
-/* ============ DETAIL REFRESH ============ */
-async function refreshDetail() {
-  if (!selectedAccountId) return;
-  const [detail, logs] = await Promise.all([
-    fetch(`/api/accounts/${selectedAccountId}`).then((r) => r.json()),
-    fetch(`/api/accounts/${selectedAccountId}/logs`).then((r) => r.json()),
-  ]);
-  if ($("detailName").textContent !== detail.name) {
-    $("detailName").textContent = detail.name || "";
-    $("detailName").style.color = "var(--text)";
-  }
-  const newStatus = detail.status;
-  if ($("detailStatus").dataset.s !== newStatus) {
-    $("detailStatus").dataset.s = newStatus;
-    $("detailStatus").textContent = newStatus;
-    $("detailStatus").className = pillCls(newStatus);
-    $("detailStatus").classList.remove("hidden");
-  }
-  const ev = (detail.eval_2 && detail.eval_2.score != null) ? detail.eval_2 :
-             (detail.eval_1 && detail.eval_1.score != null) ? detail.eval_1 : null;
-  const scoreTxt = ev ? `${ev.score}/10` : "";
-  if ($("detailScore").dataset.t !== scoreTxt) {
-    $("detailScore").dataset.t = scoreTxt;
-    if (scoreTxt) { $("detailScore").textContent = scoreTxt; $("detailScore").classList.remove("hidden"); }
-    else $("detailScore").classList.add("hidden");
-  }
-
-  const states = inferStageStates(detail, logs);
-  stateCache[detail.id] = states;
-  updatePipelineDiagram(states);
-
-  syncLogTab(logs, detail.id);
-
-  syncTabIfChanged("tab-hypothesis",
-    { h1: detail.hypothesis_1, h2: detail.hypothesis_2 },
-    () => renderHypothesisHtml(detail));
-  syncTabIfChanged("tab-evidence",
-    { homepage: detail.homepage, news: detail.news, linkedin: detail.linkedin },
-    () => renderEvidenceHtml(detail));
-  syncTabIfChanged("tab-angles",
-    { e1: detail.eval_1, e2: detail.eval_2, a: detail.outreach_angles },
-    () => renderAnglesHtml(detail));
-  syncTabIfChanged("tab-pipedrive",
-    { sc: detail.search_commands, d: detail.dossier,
-      org: detail.pipedrive_org_id, note: detail.pipedrive_note_id },
-    () => renderPipedriveHtml(detail));
-}
-
-/* ============ POLLING ============ */
-async function preloadStates(accounts) {
-  const toFetch = accounts.filter((a) => a.status !== "pending").slice(0, 16);
-  await Promise.all(toFetch.map(async (a) => {
-    try {
-      const [detail, logs] = await Promise.all([
-        fetch(`/api/accounts/${a.id}`).then((r) => r.json()),
-        fetch(`/api/accounts/${a.id}/logs`).then((r) => r.json()),
-      ]);
-      stateCache[a.id] = inferStageStates(detail, logs);
-    } catch {}
-  }));
-}
-
+// ── Polling ───────────────────────────────────────────────────────────────────
 function startPolling(runId) {
   if (pollInterval) clearInterval(pollInterval);
-  const tick = async () => {
-    try {
-      const run = await fetch(`/api/runs/${runId}`).then((r) => r.json());
-      updateHeader(run);
-      updateProgress(run);
-      const accounts = await fetch(`/api/runs/${runId}/accounts`).then((r) => r.json());
-      await preloadStates(accounts);
-      updateAccountList(accounts);
-      if (selectedAccountId) await refreshDetail();
-      if (run.status === "completed" || run.status === "cancelled") {
-        clearInterval(pollInterval); pollInterval = null;
-      }
-    } catch (e) { console.warn("poll failed", e); }
+  poll(runId);
+  pollInterval = setInterval(() => poll(runId), 3000);
+}
+
+async function poll(runId) {
+  try {
+    const [run, accounts] = await Promise.all([
+      fetch(`/api/runs/${runId}`).then(r => r.json()),
+      fetch(`/api/runs/${runId}/accounts`).then(r => r.json())
+    ]);
+    updateHeader(run);
+    updateProgress(run);
+    updateAccountList(accounts);
+    if (selectedAccountId) {
+      const [detail, logs] = await Promise.all([
+        fetch(`/api/accounts/${selectedAccountId}`).then(r => r.json()),
+        fetch(`/api/accounts/${selectedAccountId}/logs`).then(r => r.json())
+      ]);
+      updateDetailPanel(detail, logs);
+    }
+    if (run.status === 'completed' || run.status === 'cancelled') {
+      clearInterval(pollInterval); pollInterval = null;
+    }
+  } catch(e) { /* retry on next tick */ }
+}
+
+// ── Header + Progress ─────────────────────────────────────────────────────────
+function setRunStatusPill(status) {
+  const pill = document.getElementById('runStatusPill');
+  pill.classList.remove('hidden');
+  const map = {
+    idle: 'bg-surface-container-high text-on-surface-variant',
+    running: 'bg-secondary/10 text-secondary',
+    completed: 'bg-green-100 text-green-700',
+    cancelled: 'bg-error-container text-on-error-container',
+    error: 'bg-error-container text-on-error-container'
   };
-  tick();
-  pollInterval = setInterval(tick, 3000);
+  pill.className = `px-3 py-0.5 rounded-full text-[11px] font-mono font-semibold ${map[status]||map.idle}`;
+  pill.textContent = status;
 }
 
-$("startBtn").addEventListener("click", startRun);
-$("previewBtn").addEventListener("click", previewSheet);
-$("cancelBtn").addEventListener("click", cancelRun);
-
-/* ============================================================
-   CHAT COMMAND CENTER
-   ============================================================ */
-const ORCH = { c1: "#6366f1", c2: "#a78bfa", codename: "Orchestrator", key: "_orch" };
-let allAccounts = [];
-let chatHistory = [];
-let lastRunStatus = null;
-let valuePropSet = null;
-let awaitingValueProp = false;
-let firstRunNotified = false;
-
-const chatScroll = $("chatScroll");
-const chatInput  = $("chatInput");
-const chatSend   = $("chatSend");
-
-function nowTime() {
-  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-/* Minimal inline markdown: **bold**, *em*, `code`, line breaks preserved */
-function mdInline(s) {
-  let h = esc(s);
-  h = h.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  h = h.replace(/(^|\s)\*([^*\n]+)\*(?=\s|$|[.,;:!?])/g, "$1<em>$2</em>");
-  h = h.replace(/`([^`]+)`/g, "<code>$1</code>");
-  return h;
+function updateHeader(run) {
+  setRunStatusPill(run.status);
+  document.getElementById('batchLabel').textContent = `${run.done} / ${run.total} accounts`;
+  document.getElementById('runIdLabel').textContent = `Run #${run.id}`;
+  const pct = run.total > 0 ? Math.round(run.done / run.total * 100) : 0;
+  document.getElementById('sidebarProgress').style.width = pct + '%';
+  document.getElementById('sidebarProgressLabel').textContent = `${pct}% · ${run.enriched} enriched`;
+  document.getElementById('cancelBtn').classList.toggle('hidden', run.status !== 'running');
 }
 
-function scrollChatToBottom() {
-  chatScroll.scrollTop = chatScroll.scrollHeight;
+function updateProgress(run) {
+  const pct = run.total > 0 ? Math.round(run.done / run.total * 100) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = `${run.done} / ${run.total} · ${pct}%`;
+  const running = Math.max(0, run.total - run.done - (run.enriched||0) - (run.dropped||0) - (run.errors||0));
+  document.getElementById('cntPending').textContent = Math.max(0, run.total - run.done);
+  document.getElementById('cntRunning').textContent = run.status === 'running' ? running : 0;
+  document.getElementById('cntEnriched').textContent = run.enriched || 0;
+  document.getElementById('cntDropped').textContent = run.dropped || 0;
+  document.getElementById('cntError').textContent = run.errors || 0;
 }
 
-function makeMessageNode({ role, agent, text, embed }) {
-  const div = document.createElement("div");
-  div.className = `msg ${role} appear`;
-  const a = agent || ORCH;
-  const av = role === "user"
-    ? `<span class="mav" style="background: linear-gradient(135deg, #71717a, #a1a1aa);">YOU</span>`
-    : `<span class="mav" style="background: linear-gradient(135deg, ${a.c1}, ${a.c2});">${initials(a.codename)}</span>`;
-  const name = role === "user" ? "You" : a.codename;
-  div.innerHTML = `
-    ${role === "user" ? "" : av}
-    <div class="body">
-      <div class="hd">
-        <span class="nm">${esc(name)}</span>
-        <span class="tm">${nowTime()}</span>
-      </div>
-      <div class="bub"></div>
-      ${embed ? `<div class="embed">${embed}</div>` : ""}
-    </div>
-    ${role === "user" ? av : ""}`;
-  const bub = div.querySelector(".bub");
-  if (text != null) bub.innerHTML = mdInline(text);
-  chatScroll.appendChild(div);
-  scrollChatToBottom();
-  setTimeout(() => div.classList.remove("appear"), 350);
-  return { node: div, bubble: bub };
-}
-
-async function streamMessage({ role, agent, text, embed, speed }) {
-  const { bubble } = makeMessageNode({ role, agent, text: "", embed });
-  bubble.innerHTML = `<span class="stream-cur"></span>`;
-  const cps = speed || 60;          // chars per second
-  const tick = 1000 / cps;
-  let i = 0;
-  while (i < text.length) {
-    const step = Math.max(1, Math.round(cps / 30)); // 2 chars per tick at 60cps
-    i = Math.min(text.length, i + step);
-    bubble.innerHTML = mdInline(text.slice(0, i)) + (i < text.length ? '<span class="stream-cur"></span>' : "");
-    scrollChatToBottom();
-    await sleep(tick);
+// ── Account List ──────────────────────────────────────────────────────────────
+function updateAccountList(accounts) {
+  const tbody = document.getElementById('accountList');
+  document.getElementById('acctCount').textContent = accounts.length + ' accounts';
+  if (!accounts.length) {
+    document.getElementById('acctEmpty').classList.remove('hidden');
+    tbody.innerHTML = ''; return;
   }
-  bubble.innerHTML = mdInline(text);
-  scrollChatToBottom();
+  document.getElementById('acctEmpty').classList.add('hidden');
+  const dotCls = {pending:'dot-pending',running:'dot-running',enriched:'dot-enriched',dropped:'dot-dropped',error:'dot-error'};
+  const statusLabel = {pending:'Pending',running:'Analyzing',enriched:'Enriched',dropped:'Dropped',error:'Error'};
+  tbody.innerHTML = accounts.map(a => `
+    <tr class="acct-row${a.id === selectedAccountId ? ' selected' : ''}" onclick="selectAccount(${a.id})">
+      <td class="py-3 px-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-secondary-fixed flex items-center justify-center font-bold text-[11px] text-on-secondary-fixed shrink-0">${initials(a.name)}</div>
+          <div>
+            <p class="text-[13px] font-semibold text-on-surface leading-tight">${escHtml(a.name)}</p>
+            <p class="text-[11px] font-mono text-on-surface-variant">${escHtml(a.domain||'—')}</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-3">
+        <div class="flex items-center gap-1.5">
+          <span class="status-dot ${dotCls[a.status]||'dot-pending'}"></span>
+          <span class="text-[11px] font-mono">${statusLabel[a.status]||a.status}</span>
+        </div>
+      </td>
+      <td class="py-3 px-3 text-right">
+        ${a.score != null
+          ? `<span class="px-2 py-0.5 bg-secondary/10 text-secondary rounded text-[11px] font-mono font-bold">${a.score}/10</span>`
+          : '<span class="text-on-surface-variant text-[11px] font-mono">—</span>'}
+      </td>
+    </tr>`).join('');
 }
 
-function showThinking(agent) {
-  const a = agent || ORCH;
-  const div = document.createElement("div");
-  div.className = "msg agent appear";
-  div.innerHTML = `
-    <span class="mav" style="background: linear-gradient(135deg, ${a.c1}, ${a.c2});">${initials(a.codename)}</span>
-    <div class="body">
-      <div class="hd"><span class="nm">${esc(a.codename)}</span><span class="tm">${nowTime()}</span></div>
-      <div class="thinking">
-        <span class="thinking-dot"></span>
-        <span class="thinking-dot"></span>
-        <span class="thinking-dot"></span>
-      </div>
-    </div>`;
-  chatScroll.appendChild(div);
-  scrollChatToBottom();
-  return div;
-}
-
-function orchSay(text, embed)  { return streamMessage({ role: "agent", agent: ORCH, text, embed, speed: 90 }); }
-function userSay(text)         { return makeMessageNode({ role: "user", text }); }
-async function agentVoice(agentKey, text) {
-  const a = AGENT_BY_KEY[agentKey] || ORCH;
-  await streamMessage({ role: "agent", agent: a, text, speed: 80 });
-}
-
-/* ============ COMMAND ROUTING ============ */
-function stripCmdNoise(s) {
-  return s.replace(/^(can you|please|could you|i want to|i'd like to)\s+/i, "").trim();
-}
-
-function extractCompany(text) {
-  let s = text.toLowerCase().trim();
-  s = s.replace(/^(tell me about|show me|details on|details for|brief on|briefing for|briefing on|brief|dossier( on| for)?|info on|read me|what about|who is|who's)\s+/i, "");
-  s = s.replace(/\s+(briefing|brief|dossier|details|info|summary)$/i, "");
-  s = s.replace(/^(angles?|outreach|pitches?)( for)?\s+/i, "");
-  s = s.replace(/^(why was|why is|why did)\s+/i, "");
-  s = s.replace(/\s+(dropped|qualified|enriched|scored)$/i, "");
-  return s.trim();
-}
-
-function findAccountId(needle) {
-  if (!needle) return null;
-  const n = needle.toLowerCase();
-  let best = null, bestLen = 0;
-  for (const a of allAccounts) {
-    const name = (a.name || "").toLowerCase();
-    const dom  = (a.domain || "").toLowerCase();
-    if (!name && !dom) continue;
-    if (name === n || dom === n) return a.id;
-    if (name.includes(n) || (dom && dom.includes(n))) {
-      if (name.length > bestLen) { best = a.id; bestLen = name.length; }
-    }
-  }
-  return best;
-}
-
-function selectAccountById(id) {
-  if (!id) return;
+async function selectAccount(id) {
   selectedAccountId = id;
-  acctRows.forEach((e, eid) => e.li.classList.toggle("selected", eid === id));
-  refreshDetail();
-  const row = acctRows.get(id);
-  if (row) row.li.scrollIntoView({ block: "nearest", behavior: "smooth" });
-}
-
-/* --- handlers --- */
-async function cmdGreet() {
-  await orchSay("Hi — I'm the BDR orchestrator. Eight specialist agents do the research; I run the show.\n\nDrop your value proposition, or just say **start a run** to begin.");
-}
-
-async function cmdHelp() {
-  await orchSay(
-`Here's what you can ask me:
-
-• **start a run** — kick off the pipeline on your Google Sheet
-• **preview** — peek at the rows in the sheet
-• **status** — current progress
-• **tell me about <company>** — full briefing, agent by agent
-• **why was <company> dropped?** — verdict + reasons
-• **angles for <company>** — top outreach angles
-• **qualified** — accounts shipped to Pipedrive
-• **dropped** — accounts below threshold
-• **stop** — cancel the active run`
-  );
-}
-
-async function cmdPreview() {
-  const sheetIdOverride = $("sheetId").value.trim();
-  const url = sheetIdOverride ? `/api/sheets/preview?sheet_id=${encodeURIComponent(sheetIdOverride)}` : "/api/sheets/preview";
-  const thinking = showThinking(ORCH);
+  document.getElementById('detailEmpty').classList.add('hidden');
+  document.getElementById('detailContent').classList.remove('hidden');
+  if (!shaderInited.detail) {
+    shaderInited.detail = true;
+    requestAnimationFrame(() => initShader('detailShader'));
+  }
   try {
-    const res  = await fetch(url);
-    const data = await res.json();
-    thinking.remove();
-    if (!res.ok) {
-      await orchSay(`Couldn't read the sheet — ${esc(data.detail || res.status)}.`);
-      return;
-    }
-    const rows = (data.preview || []).slice(0, 10);
-    const embed = rows.length
-      ? rows.map(r => `<div class="row"><span class="dim">${String(r.row_index).padStart(2,"0")}.</span><b>${esc(r.name)}</b><span class="dim">${esc(r.domain || "")}</span></div>`).join("")
-      : `<div class="empty-inline">(no rows)</div>`;
-    await streamMessage({ role: "agent", agent: ORCH, speed: 90,
-      text: `Sheet has **${data.total}** accounts. Here are the first ${Math.min(10, data.total)}:`,
-      embed });
-  } catch (e) {
-    thinking.remove();
-    await orchSay(`Couldn't reach the sheet — ${esc(e.message)}.`);
-  }
+    const [detail, logs] = await Promise.all([
+      fetch(`/api/accounts/${id}`).then(r => r.json()),
+      fetch(`/api/accounts/${id}/logs`).then(r => r.json())
+    ]);
+    updateDetailPanel(detail, logs);
+    document.querySelectorAll('.acct-row').forEach(r => r.classList.remove('selected'));
+    document.querySelectorAll('.acct-row').forEach(r => {
+      if (r.getAttribute('onclick') === `selectAccount(${id})`) r.classList.add('selected');
+    });
+  } catch(e) { console.error(e); }
 }
 
-async function cmdStart() {
-  if (currentRunId && lastRunStatus !== "completed" && lastRunStatus !== "cancelled") {
-    await orchSay(`A run is already live (**run #${currentRunId}**, ${lastRunStatus}). Say **stop** to cancel it first.`);
-    return;
+// ── Detail Panel ──────────────────────────────────────────────────────────────
+function updateDetailPanel(account, logs) {
+  const hyp   = tryParse(account.hypothesis_1);
+  const hyp2  = tryParse(account.hypothesis_2);
+  const news  = tryParse(account.news);
+  const li    = tryParse(account.linkedin);
+  const eval1 = tryParse(account.eval_1);
+  const eval2 = tryParse(account.eval_2);
+  const search= tryParse(account.search_commands);
+  const dossier = tryParse(account.dossier);
+  const bestEval = eval2 || eval1;
+
+  // Hero
+  document.getElementById('heroName').textContent = account.name;
+  document.getElementById('heroSummary').textContent =
+    dossier?.summary || hyp?.hypothesis || (account.status === 'running' ? 'Agents are actively researching this account…' : 'No data yet.');
+  document.getElementById('heroAngle').textContent =
+    hyp?.angle || bestEval?.suggested_angle || '—';
+  document.getElementById('heroScore').textContent =
+    bestEval?.score != null ? `${bestEval.score}/10` : (account.status === 'running' ? 'Analyzing…' : '—');
+  document.getElementById('heroNextAction').textContent =
+    account.status === 'enriched' ? (account.pipedrive_org_id ? 'Synced to Pipedrive' : 'Review Dossier') :
+    account.status === 'dropped' ? 'Below threshold' :
+    account.status === 'running' ? 'In progress…' : '—';
+
+  const statusTag = document.getElementById('heroStatusTag');
+  if (bestEval?.score >= 7) {
+    statusTag.classList.remove('hidden'); statusTag.textContent = 'HIGH INTENT';
+    statusTag.className = 'flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-[11px] font-mono font-semibold rounded-full';
+  } else if (account.status === 'dropped') {
+    statusTag.classList.remove('hidden'); statusTag.textContent = 'DROPPED';
+    statusTag.className = 'flex items-center gap-1 px-3 py-1 bg-surface-container-high text-on-surface-variant text-[11px] font-mono font-semibold rounded-full';
+  } else { statusTag.classList.add('hidden'); }
+
+  // Marquee
+  const marqWrap = document.getElementById('heroMarqueeWrap');
+  const marq = document.getElementById('heroMarquee');
+  const recent = logs.filter(l => l.step !== 'error').slice(-5);
+  if (account.status === 'running' && recent.length) {
+    marqWrap.classList.remove('hidden');
+    const items = [...recent, ...recent];
+    marq.innerHTML = items.map(l =>
+      `<span class="text-[11px] font-mono text-on-surface-variant/70">[${escHtml(l.step)}] ${escHtml(l.message.substring(0,55))}…</span>`
+    ).join('');
+  } else { marqWrap.classList.add('hidden'); }
+
+  // Hypothesis
+  const hypEl = document.getElementById('hypothesisContent');
+  if (hyp) {
+    hypEl.innerHTML = renderHypothesisCard(hyp, 'Pass 1') + (hyp2 ? renderHypothesisCard(hyp2, 'Retry') : '');
+  } else { hypEl.innerHTML = pendingBlock(account.status === 'running' ? 'Generating hypothesis…' : 'No hypothesis data.'); }
+
+  // News
+  const newsEl = document.getElementById('newsContent');
+  if (news) { newsEl.innerHTML = renderNewsItems(news); }
+  else { newsEl.innerHTML = pendingBlock(account.status === 'running' ? 'Scouting news…' : 'No news data.'); }
+
+  // LinkedIn
+  const liEl = document.getElementById('linkedinContent');
+  liEl.innerHTML = li ? renderLinkedinSignals(li) : pendingBlock(account.status === 'running' ? 'Analyzing LinkedIn…' : 'No LinkedIn data.');
+
+  // Evaluation cards
+  renderEvalCard('eval1Content', eval1, account);
+  renderEvalCard('eval2Content', eval2, account);
+
+  // Talking points
+  const tpEl = document.getElementById('talkingPointsContent');
+  if (bestEval?.talking_points?.length) {
+    tpEl.innerHTML = `
+      <p class="text-[12px] font-mono text-on-primary-container/60 italic mb-4">Opening angle: ${escHtml(bestEval.suggested_angle||'—')}</p>
+      <ul class="space-y-3 mb-6">
+        ${bestEval.talking_points.map(tp =>
+          `<li class="flex gap-3"><span class="text-secondary-fixed-dim mt-0.5">•</span><span class="text-[14px] text-on-primary-container/80 leading-relaxed">${escHtml(tp)}</span></li>`
+        ).join('')}
+      </ul>
+      ${bestEval.fit_reasons?.length ? `
+        <div class="space-y-2">
+          <p class="text-[11px] font-mono font-semibold text-secondary-fixed-dim uppercase tracking-wide mb-2">Fit Evidence</p>
+          ${bestEval.fit_reasons.map(r => `
+            <div class="flex gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
+              <span class="text-secondary-fixed-dim shrink-0">→</span>
+              <span class="text-[14px] text-on-primary-container/70">${escHtml(r)}</span>
+            </div>`).join('')}
+        </div>` : ''}`;
+  } else {
+    tpEl.innerHTML = `<p class="text-[14px] text-on-primary-container/50 italic">${account.status === 'running' ? 'Generating talking points…' : 'No talking points.'}</p>`;
   }
-  const vp = $("valueProp").value.trim();
-  if (!vp) {
-    awaitingValueProp = true;
-    await orchSay(`First I need your value prop — what are you selling and to whom? Paste it as your next message.`);
-    return;
+
+  // Search commands
+  const searchEl = document.getElementById('searchContent');
+  if (search) {
+    searchEl.innerHTML = `
+      <div class="space-y-6">
+        ${search.target_titles?.length ? `
+          <div>
+            <p class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Target Titles</p>
+            <div class="flex flex-wrap gap-2">
+              ${search.target_titles.map(t => `<span class="px-3 py-1 bg-secondary-fixed text-on-secondary-fixed rounded text-[11px] font-mono">${escHtml(t)}</span>`).join('')}
+            </div>
+          </div>` : ''}
+        ${search.why_these_titles ? `
+          <div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20">
+            <p class="text-[11px] font-mono font-semibold text-secondary uppercase tracking-wide mb-1">Reasoning</p>
+            <p class="text-[14px] text-on-surface">${escHtml(search.why_these_titles)}</p>
+          </div>` : ''}
+        <div>
+          <p class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Primary Search</p>
+          ${codeBlock(search.primary_search||'—', 'BOOLEAN SEARCH')}
+        </div>
+        <div>
+          <p class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Backup Search</p>
+          ${codeBlock(search.backup_search||'—', 'BACKUP')}
+        </div>
+      </div>`;
+  } else {
+    searchEl.innerHTML = pendingBlock(account.status === 'running' || account.status === 'pending' ? 'Generating search commands…' : 'No search commands.');
   }
-  await orchSay(`Booting the pipeline with: *"${vp.length > 110 ? vp.slice(0, 110) + "…" : vp}"*`);
-  await startRun();
+
+  // Pipedrive
+  const pdEl = document.getElementById('pipedriveContent');
+  if (dossier) {
+    pdEl.innerHTML = `
+      <div class="space-y-6">
+        ${account.pipedrive_org_id ? `
+          <div class="p-5 bg-green-50 border border-green-200 rounded-xl flex items-center gap-4">
+            <span class="material-symbols-outlined text-green-600 text-[28px]" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <div>
+              <p class="text-[13px] font-bold text-green-700">Synced to Pipedrive</p>
+              <p class="text-[12px] font-mono text-green-600">Org ID: ${escHtml(String(account.pipedrive_org_id))}</p>
+            </div>
+          </div>` : `
+          <div class="p-5 bg-surface-container-low border border-outline-variant/30 rounded-xl">
+            <p class="text-[14px] text-on-surface-variant">Pipedrive sync pending or account was dropped.</p>
+          </div>`}
+        ${dossier.tags?.length ? `
+          <div>
+            <p class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Tags</p>
+            <div class="flex flex-wrap gap-2">${dossier.tags.map(t => `<span class="px-3 py-1 bg-surface-container border border-outline-variant/30 rounded text-[11px] font-mono text-on-surface-variant">${escHtml(t)}</span>`).join('')}</div>
+          </div>` : ''}
+        ${dossier.key_insight ? `
+          <div class="insight-card p-5 bg-white/60 rounded-xl border border-outline-variant/20">
+            <p class="text-[11px] font-mono font-semibold text-secondary uppercase tracking-wide mb-2">Key Insight</p>
+            <p class="text-[14px] text-on-surface leading-relaxed">${escHtml(dossier.key_insight)}</p>
+          </div>` : ''}
+        <div>
+          <p class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Pipedrive Note Preview</p>
+          <pre class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-5 text-[12px] font-mono text-on-surface overflow-x-auto whitespace-pre-wrap leading-relaxed">${escHtml(dossier.pipedrive_note||'—')}</pre>
+        </div>
+      </div>`;
+  } else {
+    pdEl.innerHTML = pendingBlock(account.status === 'running' || account.status === 'pending' ? 'Compiling dossier…' : 'No dossier data.');
+  }
+
+  // Log
+  const logEl = document.getElementById('logContent');
+  if (logs.length) { logEl.innerHTML = logs.map(renderLogEntry).join(''); }
+  else { logEl.innerHTML = '<p class="text-[14px] text-on-surface-variant italic">No log entries yet.</p>'; }
 }
 
-async function cmdStop() {
-  if (!currentRunId || lastRunStatus === "completed" || lastRunStatus === "cancelled") {
-    await orchSay(`No active run to stop.`);
-    return;
-  }
-  await cancelRun();
-  await orchSay(`Cancelling run **#${currentRunId}**…`);
+// ── Render helpers ────────────────────────────────────────────────────────────
+function renderHypothesisCard(hyp, label) {
+  return `<div class="p-5 bg-surface-container-lowest border border-outline-variant/30 rounded-xl hover:bg-surface-container-low transition-colors mb-3">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="px-2 py-0.5 bg-secondary-fixed text-on-secondary-fixed rounded text-[11px] font-mono font-semibold uppercase">${escHtml(label)}</span>
+      ${hyp.angle ? `<span class="text-[12px] font-mono font-bold text-secondary">${escHtml(hyp.angle)}</span>` : ''}
+    </div>
+    <p class="text-[14px] text-on-surface leading-relaxed mb-2">${escHtml(hyp.hypothesis||'')}</p>
+    ${hyp.reasoning ? `<p class="text-[12px] font-mono text-on-surface-variant italic">${escHtml(hyp.reasoning)}</p>` : ''}
+  </div>`;
 }
 
-async function cmdStatus() {
-  if (!currentRunId) { await orchSay(`No run yet. Say **start a run** to begin.`); return; }
-  try {
-    const run = await fetch(`/api/runs/${currentRunId}`).then(r => r.json());
-    const pct = run.total ? Math.round((run.done || 0) / run.total * 100) : 0;
-    await orchSay(
-`**Run #${currentRunId}** — ${run.status}
-${run.done || 0} / ${run.total || 0} accounts processed (${pct}%)
-• **${run.enriched || 0}** qualified · **${run.dropped || 0}** dropped · **${run.errors || 0}** errored`);
-  } catch (e) {
-    await orchSay(`Status fetch failed — ${esc(e.message)}.`);
-  }
+function renderNewsItems(news) {
+  const items = [];
+  const iconMap = { funding:'trending_up', product_launch:'rocket_launch', exec_change:'person', growth_signal:'show_chart' };
+  if (news.headline)       items.push({icon:'newspaper',     label:'HEADLINE',   text:news.headline,       sentiment:'POSITIVE', sources:news.sources});
+  if (news.funding)        items.push({icon:'trending_up',   label:'FUNDING',    text:news.funding,        sentiment:'POSITIVE'});
+  if (news.product_launch) items.push({icon:'rocket_launch', label:'PRODUCT',    text:news.product_launch, sentiment:'POSITIVE'});
+  if (news.exec_change)    items.push({icon:'person',        label:'LEADERSHIP', text:news.exec_change,    sentiment:'NEUTRAL'});
+  if (news.growth_signal)  items.push({icon:'show_chart',    label:'GROWTH',     text:news.growth_signal,  sentiment:'POSITIVE'});
+  if (!items.length) return '<p class="text-[14px] text-on-surface-variant italic">No news signals found.</p>';
+  const sentCls = {POSITIVE:'bg-green-100 text-green-700', NEUTRAL:'bg-surface-variant text-on-surface-variant', CAUTION:'bg-error-container text-on-error-container'};
+  return items.map(it => `
+    <div class="flex gap-4 p-4 hover:bg-surface-container-low transition-colors rounded-xl border border-transparent hover:border-outline-variant/20">
+      <div class="flex-shrink-0 w-11 h-11 bg-surface-container-high rounded-full flex items-center justify-center">
+        <span class="material-symbols-outlined text-secondary text-[20px]">${it.icon}</span>
+      </div>
+      <div class="flex-grow space-y-1">
+        <div class="flex justify-between items-center gap-2">
+          <span class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide">${escHtml(it.label)}</span>
+          <span class="px-2 py-0.5 ${sentCls[it.sentiment]||sentCls.NEUTRAL} text-[11px] font-mono font-semibold rounded-full">${it.sentiment}</span>
+        </div>
+        <p class="text-[14px] text-on-surface leading-relaxed">${escHtml(it.text)}</p>
+        ${it.sources?.length ? `<div class="flex flex-wrap gap-2 mt-1">${it.sources.map(s => `<a href="${escHtml(s)}" target="_blank" rel="noopener" class="text-[11px] font-mono text-secondary hover:underline truncate max-w-[180px]">${escHtml(s.replace(/^https?:\/\//,'').substring(0,36))}…</a>`).join('')}</div>` : ''}
+      </div>
+    </div>`).join('');
 }
 
-async function cmdList(kind) {
-  if (!allAccounts.length) { await orchSay(`Nothing to list yet — no run active.`); return; }
-  const filtered = allAccounts.filter(a => a.status === kind);
-  if (!filtered.length) {
-    await orchSay(`No accounts in *${kind}* yet.`);
-    return;
-  }
-  const top = filtered.slice(0, 12);
-  const embed = top.map((a, i) => {
-    const score = a.score != null ? `<b style="color: var(--accent);">${a.score}/10</b>` : `<span class="dim">—</span>`;
-    return `<div class="row"><span class="dim">${String(i+1).padStart(2,"0")}.</span><b>${esc(a.name)}</b>${score}<span class="dim">${esc(a.domain || "")}</span></div>`;
-  }).join("");
-  await streamMessage({ role: "agent", agent: ORCH, speed: 90,
-    text: `**${filtered.length}** accounts are *${kind}*${filtered.length > 12 ? ` — showing top ${top.length}` : ""}:`,
-    embed });
+function renderLinkedinSignals(li) {
+  let html = '';
+  if (li.team_growth) html += `<div class="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20 mb-2">
+    <p class="text-[11px] font-mono font-semibold text-secondary uppercase tracking-wide mb-1">Team Growth</p>
+    <p class="text-[13px] text-on-surface">${escHtml(li.team_growth)}</p></div>`;
+  if (li.open_roles?.length) html += `<div class="mb-2">
+    <p class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Open Roles</p>
+    <div class="flex flex-wrap gap-1">${li.open_roles.map(r => `<span class="px-2 py-0.5 bg-secondary-fixed text-on-secondary-fixed rounded text-[11px] font-mono">${escHtml(r)}</span>`).join('')}</div></div>`;
+  if (li.pain_signals?.length) html += `<div class="mb-2">
+    <p class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Pain Signals</p>
+    <ul class="space-y-1">${li.pain_signals.map(s => `<li class="flex gap-1.5 text-[12px] font-mono text-on-surface"><span class="text-secondary">•</span>${escHtml(s)}</li>`).join('')}</ul></div>`;
+  if (li.likely_initiatives?.length) html += `<div>
+    <p class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-1">Initiatives</p>
+    <ul class="space-y-1">${li.likely_initiatives.map(i => `<li class="flex gap-1.5 text-[12px] font-mono text-on-surface"><span class="text-secondary">→</span>${escHtml(i)}</li>`).join('')}</ul></div>`;
+  return html || '<p class="text-[13px] text-on-surface-variant italic">No LinkedIn signals yet.</p>';
 }
 
-async function cmdWhyDropped(text) {
-  const target = extractCompany(text);
-  const id = findAccountId(target);
-  if (!id) {
-    await orchSay(`Couldn't find an account matching **${esc(target)}**. Try **dropped** for the full list.`);
-    return;
-  }
-  selectAccountById(id);
-  const detail = await fetch(`/api/accounts/${id}`).then(r => r.json());
-  const ev = detail.eval_2 && detail.eval_2.verdict ? detail.eval_2 : detail.eval_1;
+function renderEvalCard(containerId, ev, account) {
+  const el = document.getElementById(containerId);
   if (!ev) {
-    await agentVoice("scorer", `**${detail.name}** hasn't been scored yet.`);
+    el.innerHTML = `<div class="p-5 bg-surface-container-low rounded-xl border border-outline-variant/20">
+      <p class="text-[14px] text-on-surface-variant italic">${account.status==='running'?'Evaluating…':'No evaluation data.'}</p></div>`;
     return;
   }
-  await agentVoice("scorer",
-`**${detail.name}** scored *${ev.score ?? "?"}/10* and was ${ev.relevant ? "qualified" : "marked below threshold"}.
-Verdict: ${ev.verdict || "—"}`);
-  if (ev.fit_reasons && ev.fit_reasons.length) {
-    await sleep(250);
-    await agentVoice("scorer", `Fit reasons: ${ev.fit_reasons.slice(0,3).map(x => "• " + x).join("\n")}`);
-  }
+  const circ = 2 * Math.PI * 32;
+  const offset = circ - ((ev.score / 10) * circ);
+  const scoreColor = ev.score >= 7 ? '#16a34a' : ev.score >= 5 ? '#4648d4' : '#ba1a1a';
+  el.innerHTML = `<div class="p-5 bg-surface-container-lowest border border-outline-variant/30 rounded-xl">
+    <div class="flex items-center gap-5 mb-4">
+      <div class="relative w-[76px] h-[76px] shrink-0">
+        <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg);display:block;">
+          <circle cx="38" cy="38" r="32" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="6"/>
+          <circle class="ring-fg" cx="38" cy="38" r="32" fill="none" stroke="${scoreColor}" stroke-width="6"
+            stroke-dasharray="${circ}" stroke-dashoffset="${offset}"/>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span class="text-[20px] font-black text-on-surface leading-none">${ev.score}</span>
+          <span class="text-[10px] font-mono text-on-surface-variant">/10</span>
+        </div>
+      </div>
+      <div>
+        <div class="mb-1.5">${ev.relevant
+          ? '<span class="px-3 py-0.5 bg-green-100 text-green-700 rounded-full text-[11px] font-mono font-bold">QUALIFIED</span>'
+          : '<span class="px-3 py-0.5 bg-surface-container text-on-surface-variant rounded-full text-[11px] font-mono font-bold">NOT QUALIFIED</span>'}</div>
+        <p class="text-[13px] text-on-surface leading-relaxed">${escHtml(ev.verdict||'')}</p>
+      </div>
+    </div>
+    ${ev.suggested_angle ? `<div class="p-3 bg-secondary/5 border border-secondary/10 rounded-xl">
+      <p class="text-[11px] font-mono font-semibold text-secondary uppercase tracking-wide mb-1">Suggested Angle</p>
+      <p class="text-[13px] text-on-surface">${escHtml(ev.suggested_angle)}</p>
+    </div>` : ''}
+  </div>`;
 }
 
-async function cmdAngles(text) {
-  const target = extractCompany(text);
-  let id = findAccountId(target);
-  if (!id) id = selectedAccountId;
-  if (!id) {
-    await orchSay(`Which account? Try **angles for Acme** or click one on the right.`);
-    return;
-  }
-  selectAccountById(id);
-  const detail = await fetch(`/api/accounts/${id}`).then(r => r.json());
-  const angles = (detail.outreach_angles && detail.outreach_angles.angles) || [];
-  if (!angles.length) {
-    await agentVoice("outreach_angles", `No angles yet for **${detail.name}** — Pitch hasn't run.`);
-    return;
-  }
-  await agentVoice("outreach_angles", `Top 3 angles for **${detail.name}** — full list on the right →`);
-  for (let i = 0; i < Math.min(3, angles.length); i++) {
-    const a = angles[i];
-    await sleep(200);
-    await agentVoice("outreach_angles",
-`*${a.trigger || "trigger"}*
-**Pitch:** "${a.pitch || ""}"
-**Proof:** ${a.proof_idea || "—"}`);
-  }
+function renderLogEntry(l) {
+  const icons = {hypothesise:'lightbulb',news:'newspaper',linkedin:'group',evaluate:'grade',retry:'refresh',save:'save',search_cmd:'manage_search',drop:'cancel',error:'error'};
+  const cols  = {hypothesise:'text-secondary',news:'text-secondary',linkedin:'text-secondary',evaluate:'text-green-600',retry:'text-amber-600',save:'text-green-600',search_cmd:'text-secondary',drop:'text-on-surface-variant',error:'text-error'};
+  const time = new Date(l.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  return `<div class="flex gap-3">
+    <div class="flex-shrink-0 w-8 h-8 bg-surface-container-high rounded-full flex items-center justify-center">
+      <span class="material-symbols-outlined text-[15px] ${cols[l.step]||'text-on-surface-variant'}">${icons[l.step]||'chevron_right'}</span>
+    </div>
+    <div class="flex-grow">
+      <div class="flex items-baseline gap-2 mb-0.5">
+        <span class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide">${escHtml(l.step)}</span>
+        <span class="text-[11px] font-mono text-on-surface-variant/50">${time}</span>
+      </div>
+      <p class="text-[14px] text-on-surface leading-relaxed">${escHtml(l.message)}</p>
+    </div>
+  </div>`;
 }
 
-async function cmdBriefing(text, knownId) {
-  let id = knownId;
-  if (!id) {
-    const target = extractCompany(text);
-    id = findAccountId(target);
-  }
-  if (!id) {
-    await orchSay(`I don't have an account by that name. Try one from the list →`);
-    return;
-  }
-  selectAccountById(id);
-  const detail = await fetch(`/api/accounts/${id}`).then(r => r.json());
-  await orchSay(`Pulling the file on **${detail.name}**…`);
-
-  const spoke = [];
-  const speak = async (key, text) => { spoke.push(key); await sleep(220); await agentVoice(key, text); };
-
-  if (detail.homepage) {
-    const hp = detail.homepage.replace(/\s+/g, " ").trim();
-    await speak("homepage_scout", `Homepage — "${hp.slice(0, 160)}${hp.length > 160 ? "…" : ""}"`);
-  }
-  if (detail.news) {
-    const n = detail.news;
-    const bits = [n.funding, n.product_launch, n.exec_change, n.growth_signal].filter(Boolean);
-    if (n.headline)    await speak("news_scout", `**${n.headline}**`);
-    if (bits.length)   await speak("news_scout", `Signals — ${bits.join(" · ")}`);
-  }
-  if (detail.linkedin) {
-    const l = detail.linkedin;
-    const parts = [];
-    if (l.team_growth) parts.push(l.team_growth);
-    if (l.open_roles && l.open_roles.length) parts.push(`${l.open_roles.length} open roles: ${l.open_roles.slice(0,3).join(", ")}`);
-    if (parts.length) await speak("linkedin_analyst", `Hiring — ${parts.join(" · ")}`);
-  }
-  if (detail.hypothesis_1) {
-    await speak("hypothesis_builder", `Hypothesis — *${detail.hypothesis_1.headline}*`);
-  }
-  const ev = detail.eval_2 || detail.eval_1;
-  if (ev) {
-    await speak("scorer", `Score **${ev.score ?? "?"}/10** — ${ev.relevant ? "qualified" : "below threshold"}. ${ev.verdict || ""}`);
-  }
-  const angles = (detail.outreach_angles && detail.outreach_angles.angles) || [];
-  if (angles.length) {
-    await speak("outreach_angles", `Lead with: "${angles[0].pitch || ""}"`);
-  }
-  if (detail.pipedrive_org_id) {
-    await speak("pipedrive", `Synced to Pipedrive — Org #${detail.pipedrive_org_id}${detail.pipedrive_note_id ? `, Note #${detail.pipedrive_note_id}` : ""}.`);
-  }
-  if (!spoke.length) {
-    await orchSay(`No data yet on **${detail.name}** — the agents haven't reported.`);
-  }
+function codeBlock(text, label) {
+  const escaped = escHtml(text);
+  return `<div class="rounded-xl overflow-hidden border border-outline-variant/30">
+    <div class="flex items-center justify-between px-5 py-2.5 bg-surface-container border-b border-outline-variant/20">
+      <span class="text-[11px] font-mono font-semibold text-on-surface-variant">${label}</span>
+      <button onclick="navigator.clipboard.writeText(${JSON.stringify(text)})" class="flex items-center gap-1 text-[11px] font-mono font-semibold text-secondary hover:text-secondary/80 transition-colors">
+        <span class="material-symbols-outlined text-[14px]">content_copy</span> Copy
+      </button>
+    </div>
+    <pre class="px-5 py-4 text-[12px] font-mono text-on-surface bg-surface-container-lowest overflow-x-auto whitespace-pre-wrap leading-relaxed">${escaped}</pre>
+  </div>`;
 }
 
-const COMMANDS = [
-  { re: /^(hi|hello|hey|howdy|yo|sup)\b/i,                                            fn: cmdGreet },
-  { re: /^(help|\?|commands|what can (you|i)|how does this work)\b/i,                  fn: cmdHelp },
-  { re: /^(preview|show.*sheet|what'?s in (the )?sheet|peek( at)? the sheet)\b/i,      fn: cmdPreview },
-  { re: /^(stop|cancel|abort|halt|kill (it|the run))\b/i,                              fn: cmdStop },
-  { re: /^(status|progress|how (are|is|much)|where (are we|we at)|update)\b/i,         fn: cmdStatus },
-  { re: /^(qualified|winners|enriched|who'?s qualified|shipped)\b/i,                   fn: () => cmdList("enriched") },
-  { re: /^(dropped|below threshold|losers|who'?s dropped|who got dropped)\b/i,         fn: () => cmdList("dropped") },
-  { re: /^(start|run|go|begin|let'?s go|fire it up|kick off)\b/i,                      fn: cmdStart },
-  { re: /^(why .* dropped|why.*not qualified|why was .* dropped)/i,                    fn: cmdWhyDropped },
-  { re: /^(angles?|outreach|pitches?)\b/i,                                             fn: cmdAngles },
-  { re: /^(tell me about|brief(ing)?( on)?|dossier|show me|details on|details for|read me|who is|who'?s)\b/i, fn: cmdBriefing },
-];
-
-async function routeCommand(text) {
-  const t = stripCmdNoise(text);
-
-  // 1. If we asked for a value prop, take whatever comes next as the prop.
-  if (awaitingValueProp) {
-    awaitingValueProp = false;
-    $("valueProp").value = t;
-    valuePropSet = t;
-    await orchSay(`Got it — value prop saved. Say **start a run** when you're ready.`);
-    return;
-  }
-
-  // 2. Match a command verb.
-  for (const c of COMMANDS) {
-    if (c.re.test(t)) return c.fn(t);
-  }
-
-  // 3. Single-word/short text — maybe it's an account name?
-  if (t.length < 80) {
-    const id = findAccountId(t);
-    if (id) return cmdBriefing(t, id);
-  }
-
-  // 4. Looks like a value prop (long-ish prose).
-  if (t.length > 40) {
-    $("valueProp").value = t;
-    valuePropSet = t;
-    await orchSay(`Saved that as your value proposition. Say **start a run** when ready.`);
-    return;
-  }
-
-  await orchSay(`I'm not sure what you mean. Type **help** to see what I can do.`);
+function pendingBlock(msg) {
+  return `<div class="p-4 bg-surface-container-low rounded-xl border border-outline-variant/20 flex items-center gap-3">
+    <span class="w-2 h-2 rounded-full bg-secondary flex-shrink-0" style="animation:pulse 1.5s ease-in-out infinite;"></span>
+    <p class="text-[14px] text-on-surface-variant italic">${msg}</p>
+  </div>`;
 }
 
-async function submitChat() {
-  const raw = chatInput.value.trim();
-  if (!raw) return;
-  chatInput.value = "";
-  autoresizeInput();
-  userSay(raw);
-  chatHistory.push({ role: "user", text: raw });
-  try { await routeCommand(raw); }
-  catch (e) { await orchSay(`Something broke — ${esc(e.message)}.`); }
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.remove('hidden');
 }
 
-function autoresizeInput() {
-  chatInput.style.height = "auto";
-  chatInput.style.height = Math.min(140, chatInput.scrollHeight) + "px";
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function tryParse(val) {
+  if (!val) return null;
+  if (typeof val === 'object') return val;
+  try { return JSON.parse(val); } catch { return null; }
+}
+function initials(name) {
+  if (!name) return '?';
+  return name.split(/\s+/).slice(0,2).map(w => w[0]||'').join('').toUpperCase() || '?';
 }
 
-chatInput.addEventListener("input", autoresizeInput);
-chatInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitChat(); }
-});
-chatSend.addEventListener("click", submitChat);
-$("chatActions").querySelectorAll("button").forEach(b => {
-  b.addEventListener("click", () => {
-    chatInput.value = b.dataset.cmd;
-    submitChat();
-  });
-});
-
-/* ============ HOOKS INTO RUN LIFECYCLE ============ */
-// When polling sees status change, post a chat notification.
-function notifyRunStatusChange(prev, next, run) {
-  if (prev === next) return;
-  if (next === "running" && !firstRunNotified) {
-    firstRunNotified = true;
-    orchSay(`Pipeline live · processing **${run.total || "…"}** accounts in batches of 5. Watch the crew light up →`);
-  } else if (next === "completed") {
-    orchSay(
-`Run complete.
-• **${run.enriched || 0}** qualified
-• **${run.dropped || 0}** below threshold
-• **${run.errors || 0}** errored
-
-Ask **who's qualified** or **tell me about <company>** to dig in.`);
-  } else if (next === "cancelled") {
-    orchSay(`Run cancelled at **${run.done || 0}/${run.total || 0}** accounts.`);
-  }
-}
-
-// Patch updateHeader to also call our notifier (preserves original behavior).
-const _origUpdateHeader = updateHeader;
-updateHeader = function(run) {
-  const prev = lastRunStatus;
-  _origUpdateHeader(run);
-  lastRunStatus = run.status;
-  notifyRunStatusChange(prev, run.status, run);
-  // Toggle the ready hero vs live panels
-  if (run.status && run.status !== "idle") {
-    $("readyHero")?.classList.add("hidden");
-  }
-};
-
-// Patch updateAccountList to keep allAccounts in sync.
-const _origUpdateAccountList = updateAccountList;
-updateAccountList = function(accounts) {
-  allAccounts = accounts;
-  _origUpdateAccountList(accounts);
-};
-
-// On run start (startBtn → startRun), the readyHero should hide.
-const _origStartRun = startRun;
-startRun = async function() {
-  $("readyHero")?.classList.add("hidden");
-  return _origStartRun.apply(this, arguments);
-};
-
-/* ============ INITIAL GREETING ============ */
-(async function bootChat() {
-  await sleep(300);
-  await orchSay(`Hi — I'm the BDR orchestrator. Eight specialist agents — *Atlas, Echo, Talent, Sift, Oracle, Verdict, Pitch, Hunter, Scribe, Ledger* — do the research. I run the show.\n\nPaste your **value proposition**, then say **start a run** — or ask **preview** to peek at the sheet first.`);
-})();
+// ── Boot ──────────────────────────────────────────────────────────────────────
+showView('setup'); // sets Pipeline as active nav
+appendChatMsg('agent', 'Hello! I\'m your AI orchestrator. Tell me to <b>start a run</b>, <b>preview the sheet</b>, or ask about any account.', true);
 </script>
 </body>
 </html>

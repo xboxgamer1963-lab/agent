@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     gemini_api_key: str
     tavily_api_key: str
     firecrawl_api_key: str
-    pipedrive_api_key: str
+    pipedrive_api_key: str | None = None
     google_sheet_id: str
     google_service_account_json: str
     batch_size: int = 5
@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     nvidia_api_key: str | None = None
     ollama_model: str | None = None
     ollama_url: str = "http://localhost:11434/v1/chat/completions"
+    # Auth
+    secret_key: str = "change-me-in-env-please-use-a-long-random-string"
+    app_email: str = "admin@insightengine.ai"
+    app_password: str = "changeme"
 
     model_config = SettingsConfigDict(
         env_file=str(PROJECT_ROOT / ".env"),

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>InsightEngine | Enterprise Research Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline-variant": "#c6c6cd",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-tertiary-fixed": "#191c1e",
+                    "on-surface": "#0b1c30",
+                    "error": "#ba1a1a",
+                    "primary-container": "#131b2e",
+                    "on-primary-fixed": "#131b2e",
+                    "secondary-container": "#6063ee",
+                    "surface-tint": "#565e74",
+                    "surface": "#f8f9ff",
+                    "tertiary-fixed": "#e0e3e5",
+                    "outline": "#76777d",
+                    "surface-container-low": "#eff4ff",
+                    "on-primary-container": "#7c839b",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "primary": "#000000",
+                    "tertiary": "#000000",
+                    "on-secondary": "#ffffff",
+                    "on-background": "#0b1c30",
+                    "surface-container-high": "#dce9ff",
+                    "tertiary-container": "#191c1e",
+                    "primary-fixed-dim": "#bec6e0",
+                    "inverse-primary": "#bec6e0",
+                    "primary-fixed": "#dae2fd",
+                    "error-container": "#ffdad6",
+                    "surface-bright": "#f8f9ff",
+                    "on-error": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "surface-variant": "#d3e4fe",
+                    "surface-container": "#e5eeff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed-variant": "#2f2ebe",
+                    "on-tertiary-fixed-variant": "#444749",
+                    "on-secondary-container": "#fffbff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "secondary": "#4648d4",
+                    "tertiary-fixed-dim": "#c4c7c9",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed": "#e1e0ff",
+                    "surface-dim": "#cbdbf5",
+                    "on-tertiary-container": "#818486",
+                    "inverse-surface": "#213145",
+                    "secondary-fixed-dim": "#c0c1ff",
+                    "on-surface-variant": "#45464d",
+                    "background": "#f8f9ff",
+                    "on-secondary-fixed": "#07006c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "2px",
+                    "lg": "4px",
+                    "xl": "8px",
+                    "full": "12px"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "margin-mobile": "16px",
+                    "base": "4px",
+                    "gutter": "20px",
+                    "lg": "24px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "xs": "4px",
+                    "margin-desktop": "40px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "title-md": ["Inter"],
+                    "label-md": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "500"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-intelligence {
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(70, 72, 212, 0.2);
+        }
+        .insight-card {
+            border-left: 4px solid #4648d4;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .animate-pulse-slow {
+            animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md selection:bg-secondary/30">
+<!-- TopNavBar -->
+<header class="bg-surface/70 backdrop-blur-xl border-b border-outline-variant/30 docked full-width top-0 sticky z-50 flex justify-between items-center w-full px-margin-desktop h-16">
+<div class="flex items-center gap-xl">
+<div class="font-headline-md text-headline-md font-bold text-primary">InsightEngine</div>
+<div class="hidden md:flex gap-md">
+<a class="text-primary font-bold border-b-2 border-primary pb-1 font-label-md text-label-md" href="#">Dashboard</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 font-label-md text-label-md" href="#">Portfolio</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 font-label-md text-label-md" href="#">Reports</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200 font-label-md text-label-md" href="#">Team</a>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+<input class="bg-surface-container-low border-none rounded-lg pl-10 pr-4 h-10 w-64 focus:ring-2 focus:ring-secondary/50 text-body-md transition-all" placeholder="Search accounts, triggers, or insights..." type="text"/>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">settings</span></button>
+</div>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a senior corporate executive in a modern, well-lit office environment. The lighting is soft and flattering, highlighting a friendly yet authoritative expression. The background shows a clean, minimalist workspace with subtle glass partitions and high-end tech, consistent with a premium enterprise software experience." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9QHfFuaZ0J8Z0FeljYKHlrZKU89-V4KampngP7XGg8pRUm_iw82PDBRtCYS8QDj9_FO3wLW2f2WjQZuCHen-UUVnaa4WGdTzSu9c_5hBpv-iYGe-rEvgdheCkHruzgVUHmaSpsmLm313DD9Sasm-m-U9gpc_jbJxnZcwSa7fC8diu2YMj4YM07CwdxpL14nxqX4nWEHKkS7tFTF3Znvn7yX3v8pYXc400f60GQfVBpMzVKmNBglQBsE1wcD4k9QD8ySDJ3LO_s4w"/>
+</div>
+</div>
+</header>
+<div class="flex h-[calc(100vh-64px)] overflow-hidden">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-full w-[280px] bg-surface-container-low border-r border-outline-variant/50 p-md gap-sm shrink-0">
+<div class="flex items-center gap-sm mb-lg px-2">
+<div class="w-10 h-10 bg-secondary rounded-xl flex items-center justify-center text-on-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">business_center</span>
+</div>
+<div>
+<div class="font-headline-md text-headline-md font-black text-on-surface leading-tight">Enterprise</div>
+<div class="font-label-md text-label-md text-on-surface-variant opacity-70">Research Hub</div>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-xs">
+<a class="flex items-center gap-md px-3 py-2 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-md text-label-md">Search</span>
+</a>
+<a class="flex items-center gap-md px-3 py-2 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">business_center</span>
+<span class="font-label-md text-label-md">Accounts</span>
+</a>
+<a class="flex items-center gap-md px-3 py-2 bg-secondary-container text-on-secondary-container rounded-lg" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">psychology</span>
+<span class="font-label-md text-label-md">Intelligence</span>
+</a>
+<a class="flex items-center gap-md px-3 py-2 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">hub</span>
+<span class="font-label-md text-label-md">Stakeholders</span>
+</a>
+<a class="flex items-center gap-md px-3 py-2 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">folder_shared</span>
+<span class="font-label-md text-label-md">Library</span>
+</a>
+</nav>
+<div class="mt-auto space-y-4">
+<div class="bg-surface-container-high p-md rounded-xl">
+<p class="font-label-md text-label-md text-on-surface mb-2">Portfolio Health</p>
+<div class="w-full bg-outline-variant/30 h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary h-full w-3/4"></div>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-2">75% of targets active</p>
+</div>
+<div class="flex flex-col gap-xs">
+<a class="flex items-center gap-md px-3 py-2 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Help</span>
+</a>
+<a class="flex items-center gap-md px-3 py-2 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</div>
+<button class="w-full bg-primary text-on-primary py-3 rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity">Upgrade to Pro</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto custom-scrollbar p-margin-desktop bg-surface">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-md mb-xl">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Intelligence Dashboard</h1>
+<p class="text-on-surface-variant font-body-md">Real-time portfolio monitoring and AI-driven insights.</p>
+</div>
+<div class="flex gap-sm">
+<button class="px-lg py-2 border border-outline-variant text-on-surface rounded font-label-md text-label-md hover:bg-surface-container transition-colors flex items-center gap-sm">
+<span class="material-symbols-outlined text-[18px]">download</span> Export Report
+                    </button>
+<button class="px-lg py-2 bg-secondary text-on-secondary rounded font-label-md text-label-md hover:opacity-90 transition-opacity flex items-center gap-sm">
+<span class="material-symbols-outlined text-[18px]">add</span> New Report
+                    </button>
+</div>
+</div>
+<!-- Dashboard Grid -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Portfolio at a Glance (8 Columns) -->
+<section class="col-span-12 lg:col-span-8 flex flex-col gap-lg">
+<div class="bg-surface-container-lowest p-lg rounded-xl border border-outline-variant/30 flex flex-col h-full">
+<div class="flex items-center justify-between mb-lg">
+<h2 class="font-title-md text-title-md text-on-surface">Portfolio at a Glance</h2>
+<button class="text-secondary font-label-md text-label-md hover:underline">View All Accounts</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="border-b border-outline-variant/20">
+<th class="pb-3 font-label-md text-label-md text-on-surface-variant px-2">Account</th>
+<th class="pb-3 font-label-md text-label-md text-on-surface-variant px-2">Health</th>
+<th class="pb-3 font-label-md text-label-md text-on-surface-variant px-2">Last Activity</th>
+<th class="pb-3 font-label-md text-label-md text-on-surface-variant px-2">Engagement</th>
+<th class="pb-3 font-label-md text-label-md text-on-surface-variant px-2 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="py-4 px-2">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed font-bold text-label-md">NX</div>
+<div>
+<div class="font-body-md font-semibold text-on-surface">NexGen Corp</div>
+<div class="text-label-sm text-on-surface-variant">Cloud Infrastructure</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-2">
+<div class="flex items-center gap-xs">
+<div class="w-2 h-2 rounded-full bg-green-500"></div>
+<span class="text-label-sm font-semibold">Healthy</span>
+</div>
+</td>
+<td class="py-4 px-2 font-body-md text-on-surface-variant">2h ago</td>
+<td class="py-4 px-2">
+<div class="flex -space-x-2">
+<img alt="User" class="w-6 h-6 rounded-full border-2 border-surface" data-alt="Corporate headshot of a business woman for a modern UI profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBi0IlMglZ55XKtiMS6vxAiHBZxpH6dy2iUskkJkoOcKhcuAmjcz32qS_oh4S5yUtD_hpvxBlIwVVLagb88R_0iYzFxb1aF7htZm-JrK599J7hvXQ1N8ldtGm4TqXhP-6jxFv-5gD7l4p1XLLNKUXqwi0ThCdkk6PGC_oc3JeKL-Y_L2FNizyVTojp4cTAmxlsxu8utlQeisi5s0vVWbDgj63omsSTlkRpp3HhFtthjCPa4Td1deuAvHOOm40YA5nEs1GzOatk-6cY"/>
+<img alt="User" class="w-6 h-6 rounded-full border-2 border-surface" data-alt="Corporate headshot of a professional man for a modern UI profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTdGcpd31-WINPyE5urkqcVX8cDgw65moO4bYChjkEOtAQqeHkYAmwyjPxJBTnNyO8ul_PKbHgwAuCuP16oL0vwZjmv5mNemkVVg_b9qs7PxZREquwKtSmQ27YAeYyX-UjRIGEIQMTqvKdxOe4dR6v33QdqKnBgDRAMtYN4sMfwz2m25l7wKjMBfFfP8qTY7ClB09J0Y_AmsJ0aEl9Pzw_ruFenQTkw2Ig0zSd9AJujYjM9qEThXNJ0CxiFDe7Nd1YZA7JCExvLq0"/>
+<div class="w-6 h-6 rounded-full border-2 border-surface bg-outline-variant flex items-center justify-center text-[8px] font-bold">+4</div>
+</div>
+</td>
+<td class="py-4 px-2 text-right">
+<button class="p-2 opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="py-4 px-2">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed font-bold text-label-md">AL</div>
+<div>
+<div class="font-body-md font-semibold text-on-surface">Althea Logistics</div>
+<div class="text-label-sm text-on-surface-variant">Supply Chain</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-2">
+<div class="flex items-center gap-xs">
+<div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+<span class="text-label-sm font-semibold">At Risk</span>
+</div>
+</td>
+<td class="py-4 px-2 font-body-md text-on-surface-variant">Yesterday</td>
+<td class="py-4 px-2">
+<div class="flex -space-x-2">
+<img alt="User" class="w-6 h-6 rounded-full border-2 border-surface" data-alt="Corporate headshot of a business man for a modern UI profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPgCcXVxRIinc54ZS1Hi7iGy1PCFHr8plgAqLH-o_ruzO3gdMpyrLjNcxeHRi212wtMcaK8qCyCDM5XMBe9F8pq-0qIYFDiyutSYeWDl3xnyt2jUCr0Nzk2dd_vO1vmD89siqvvHTrEltSRfJp9WyErWry_lk5HQoqYw0NIoZ3MnNJ4rx2QGmxmn5ueBQaSxADN7hlWAU7xui5jfijgoQm7m_nI1Fg0-iQ9EAEWHcqaHpHXBOnF1_TFGMmqnJbG7r1-_kkzw97yxY"/>
+<div class="w-6 h-6 rounded-full border-2 border-surface bg-outline-variant flex items-center justify-center text-[8px] font-bold">+2</div>
+</div>
+</td>
+<td class="py-4 px-2 text-right">
+<button class="p-2 opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors group">
+<td class="py-4 px-2">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded bg-surface-container-highest flex items-center justify-center text-primary font-bold text-label-md">SV</div>
+<div>
+<div class="font-body-md font-semibold text-on-surface">Stellar Ventures</div>
+<div class="text-label-sm text-on-surface-variant">Fintech</div>
+</div>
+</div>
+</td>
+<td class="py-4 px-2">
+<div class="flex items-center gap-xs">
+<div class="w-2 h-2 rounded-full bg-green-500"></div>
+<span class="text-label-sm font-semibold">Healthy</span>
+</div>
+</td>
+<td class="py-4 px-2 font-body-md text-on-surface-variant">5h ago</td>
+<td class="py-4 px-2">
+<div class="flex -space-x-2">
+<img alt="User" class="w-6 h-6 rounded-full border-2 border-surface" data-alt="Corporate headshot of a business woman for a modern UI profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUhlJdVR7mhBTh_HJ5E_vA9JPeDfp58mLVJGmyknYAlByCNPJQgL0uEyS0AETNP2JOJhOjTdwvByy9Om2HCtYg1NopzFj76wBarENykQ3DvmaRlVh7kf5_zZU-UKXJcmYEoA5YNdmUYr8glDnTF18l3kYCCZgIR1MWRpbsZS2x-_y7H-ciZThKU-fHg-uxIz1criS_cb3GclvFHetOYjyfM2KgIEkeD0gO8wNh40qgMBMAz8BCwPqMug7btlvTEgredVpslnu-OpQ"/>
+<img alt="User" class="w-6 h-6 rounded-full border-2 border-surface" data-alt="Corporate headshot of a business man for a modern UI profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF16O5hVpLN641KKJXjUJCZwg_sBHioUcd2U5ba2BgvHh7dH8d5gsRhinx3KF3bjFBJ6I8yrAYAxS1DkzJQeM96S6BGGoAFuL9kWTMRF0Sr5aoeSWHfvtOj7A9I1MRHcNcgwJ9No2EEOOLdTOr8WezNJBAOe3b7RIjnlTmojse1FfwZ8goTykMn0AaOd4qJU3LidLLFHUdgriYxDjeEo33b5p98pry5lLqzKzgWw2qfdg4nBPy3rkQ0P1mQodfssjaIMG8UTWAyqs"/>
+</div>
+</td>
+<td class="py-4 px-2 text-right">
+<button class="p-2 opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined text-[20px]">more_vert</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Market Insights (Asymmetric Layout) -->
+<div class="grid grid-cols-2 gap-gutter">
+<div class="bg-surface-container-highest/40 p-lg rounded-xl border border-outline-variant/20 flex items-center gap-lg">
+<div class="w-16 h-16 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-[32px]">trending_up</span>
+</div>
+<div>
+<div class="text-label-sm text-on-surface-variant uppercase tracking-widest mb-1">Sector Growth</div>
+<div class="font-headline-md text-headline-md text-on-surface">+12.4%</div>
+<div class="text-label-sm text-green-600 font-bold">vs last month</div>
+</div>
+</div>
+<div class="bg-surface-container-highest/40 p-lg rounded-xl border border-outline-variant/20 flex items-center gap-lg">
+<div class="w-16 h-16 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<div>
+<div class="text-label-sm text-on-surface-variant uppercase tracking-widest mb-1">New Triggers</div>
+<div class="font-headline-md text-headline-md text-on-surface">42</div>
+<div class="text-label-sm text-secondary font-bold">8 high priority</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Intelligence Feed (4 Columns - Glassmorphism) -->
+<section class="col-span-12 lg:col-span-4">
+<div class="glass-intelligence rounded-xl p-lg h-full relative overflow-hidden flex flex-col">
+<!-- Subtle Background Sparkle -->
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-secondary/10 rounded-full blur-3xl animate-pulse-slow"></div>
+<div class="flex items-center gap-sm mb-lg relative z-10">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h2 class="font-title-md text-title-md text-on-surface">Intelligence Feed</h2>
+<div class="ml-auto w-2 h-2 rounded-full bg-secondary animate-pulse"></div>
+</div>
+<div class="space-y-md relative z-10 flex-1 overflow-y-auto custom-scrollbar pr-2">
+<!-- Feed Item -->
+<div class="insight-card bg-surface/50 p-md rounded border border-outline-variant/20 hover:bg-surface-container-lowest transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-sm">
+<span class="bg-secondary-fixed text-on-secondary-fixed px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Leadership Change</span>
+<span class="text-label-sm text-on-surface-variant">12m ago</span>
+</div>
+<p class="font-body-md text-on-surface leading-snug"><strong>NexGen Corp</strong> just announced <strong>Sarah Chen</strong> as their new CTO.</p>
+<div class="mt-md flex items-center gap-sm">
+<button class="text-secondary font-label-md text-label-md flex items-center gap-xs">
+                                        Analyze Impact <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Feed Item -->
+<div class="insight-card bg-surface/50 p-md rounded border border-outline-variant/20 hover:bg-surface-container-lowest transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-sm">
+<span class="bg-surface-container-highest text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Expansion</span>
+<span class="text-label-sm text-on-surface-variant">1h ago</span>
+</div>
+<p class="font-body-md text-on-surface leading-snug"><strong>Althea Logistics</strong> expanded operations to the <strong>United Kingdom</strong> with 3 new hubs.</p>
+<div class="mt-md flex items-center gap-sm">
+<button class="text-secondary font-label-md text-label-md flex items-center gap-xs">
+                                        View Map <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Feed Item -->
+<div class="insight-card bg-surface/50 p-md rounded border border-outline-variant/20 hover:bg-surface-container-lowest transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-sm">
+<span class="bg-error-container text-on-error-container px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Risk Alert</span>
+<span class="text-label-sm text-on-surface-variant">3h ago</span>
+</div>
+<p class="font-body-md text-on-surface leading-snug">Negative sentiment detected in <strong>Global Solutions'</strong> Q3 earnings call regarding "churn risks".</p>
+<div class="mt-md flex items-center gap-sm">
+<button class="text-secondary font-label-md text-label-md flex items-center gap-xs">
+                                        Draft Outreach <span class="material-symbols-outlined text-[14px]">edit_note</span>
+</button>
+</div>
+</div>
+<!-- Feed Item -->
+<div class="insight-card bg-surface/50 p-md rounded border border-outline-variant/20 hover:bg-surface-container-lowest transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-sm">
+<span class="bg-secondary-fixed text-on-secondary-fixed px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Funding</span>
+<span class="text-label-sm text-on-surface-variant">5h ago</span>
+</div>
+<p class="font-body-md text-on-surface leading-snug"><strong>Stellar Ventures</strong> closed a $150M Series D round led by SoftBank.</p>
+<div class="mt-md flex items-center gap-sm">
+<button class="text-secondary font-label-md text-label-md flex items-center gap-xs">
+                                        Research Details <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<button class="w-full mt-lg border border-secondary/30 py-3 rounded-lg font-label-md text-label-md text-secondary hover:bg-secondary/5 transition-colors relative z-10">
+                            Clear All Insights
+                        </button>
+</div>
+</section>
+</div>
+<!-- AI-Action Floating Button (Customized) -->
+<button class="fixed bottom-xl right-margin-desktop bg-secondary text-on-secondary px-lg py-4 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-sm group">
+<span class="material-symbols-outlined group-hover:rotate-12 transition-transform">auto_awesome</span>
+<span class="font-title-md text-title-md">Ask InsightEngine</span>
+</button>
+</main>
+</div>
+<script>
+        // Micro-interactions and simple hover effects
+        document.querySelectorAll('.insight-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateX(4px)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateX(0)';
+            });
+        });
+
+        // Search Focus interaction
+        const searchInput = document.querySelector('input[type="text"]');
+        searchInput.addEventListener('focus', () => {
+            searchInput.parentElement.classList.add('w-96');
+            searchInput.parentElement.classList.remove('w-64');
+        });
+        searchInput.addEventListener('blur', () => {
+            searchInput.parentElement.classList.add('w-64');
+            searchInput.parentElement.classList.remove('w-96');
+        });
+    </script>
+</body></html>

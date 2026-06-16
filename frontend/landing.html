@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>InsightEngine — AI Account Research Platform</title>
+<meta name="description" content="Eight specialist AI agents that research every account, score fit 1–10, and push qualified leads to Pipedrive with a full dossier — automatically."/>
+
+<!-- Paddle Billing v2 -->
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<!-- Firebase v10 compat -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
+
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: '#4648d4',
+        'brand-dark': '#3537b3',
+        surface: '#f8f9ff',
+        'on-surface': '#0b1c30',
+        'on-surface-var': '#45464d',
+        'outline-var': '#c6c6cd',
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      }
+    }
+  }
+}
+</script>
+
+<style>
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+
+.hero-bg {
+  background: radial-gradient(ellipse 80% 60% at 50% -5%, rgba(70,72,212,0.35), transparent), #050d1a;
+}
+.nav-glass {
+  background: rgba(5,13,26,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.gradient-text {
+  background: linear-gradient(135deg, #fff 0%, #a5a8ff 50%, #4648d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.btn-glow {
+  background: #4648d4;
+  transition: box-shadow 0.25s, transform 0.15s;
+}
+.btn-glow:hover {
+  box-shadow: 0 0 28px rgba(70,72,212,0.5);
+  transform: translateY(-1px);
+}
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.55s ease, transform 0.55s ease; }
+.reveal.visible { opacity: 1; transform: none; }
+.feat-card { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s; }
+.feat-card:hover { transform: translateY(-4px); box-shadow: 0 10px 36px rgba(70,72,212,0.1); border-color: rgba(70,72,212,0.3); }
+.price-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.price-card:hover { transform: translateY(-4px); }
+.agent-card { transition: border-color 0.2s, background 0.2s; }
+.agent-card:hover { border-color: rgba(70,72,212,0.4); background: rgba(70,72,212,0.03); }
+@keyframes marquee { 0%{ transform:translateX(0) } 100%{ transform:translateX(-50%) } }
+.marquee-track { animation: marquee 28s linear infinite; display: flex; gap: 64px; white-space: nowrap; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.pulse-dot { animation: pulse 1.5s ease-in-out infinite; }
+.modal-bg { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); background: rgba(5,13,26,0.65); }
+.auth-tab { border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; }
+.auth-tab.active { color: #4648d4; border-bottom-color: #4648d4; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #c6c6cd; border-radius: 10px; }
+</style>
+</head>
+<body class="bg-white text-on-surface">
+
+<!-- ═══════════════════════
+     NAVBAR
+     ═══════════════════════ -->
+<nav id="navbar" class="fixed top-0 left-0 right-0 z-50 nav-glass">
+  <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+
+    <a href="#" class="flex items-center gap-3 text-white no-underline">
+      <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-white text-[20px]" style="font-variation-settings:'FILL' 1">analytics</span>
+      </div>
+      <span class="text-[18px] font-black tracking-tight">InsightEngine</span>
+    </a>
+
+    <div class="hidden md:flex items-center gap-1">
+      <a href="#why"      class="px-4 py-2 text-[14px] font-medium text-white/70 hover:text-white transition-colors rounded-lg hover:bg-white/5">Why</a>
+      <a href="#features" class="px-4 py-2 text-[14px] font-medium text-white/70 hover:text-white transition-colors rounded-lg hover:bg-white/5">Features</a>
+      <a href="#how"      class="px-4 py-2 text-[14px] font-medium text-white/70 hover:text-white transition-colors rounded-lg hover:bg-white/5">How It Works</a>
+      <a href="#pricing"  class="px-4 py-2 text-[14px] font-medium text-white/70 hover:text-white transition-colors rounded-lg hover:bg-white/5">Pricing</a>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div id="navAuthOut" class="flex items-center gap-3">
+        <button onclick="openAuth('signin')" class="px-4 py-2 text-[14px] font-semibold text-white/80 hover:text-white transition-colors">Sign In</button>
+        <button onclick="openAuth('signup')" class="btn-glow px-5 py-2 text-[14px] font-semibold text-white rounded-xl">Get Started</button>
+      </div>
+      <div id="navAuthIn" class="hidden items-center gap-3 relative">
+        <a href="/dashboard" class="px-4 py-2 text-[14px] font-semibold text-white/80 hover:text-white transition-colors">Dashboard</a>
+        <button id="navAvatar" onclick="toggleUserMenu()" class="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white text-[13px] font-bold">?</button>
+        <div id="userMenu" class="hidden absolute top-12 right-0 bg-white border border-outline-var shadow-2xl rounded-2xl p-2 min-w-[200px] z-50">
+          <p id="userMenuName" class="px-4 py-2 text-[13px] font-semibold text-on-surface border-b border-outline-var/30 mb-1 truncate">User</p>
+          <a href="/dashboard" class="flex items-center gap-2 px-4 py-2.5 text-[13px] text-on-surface hover:bg-surface rounded-xl transition-colors">
+            <span class="material-symbols-outlined text-[16px] text-brand">rocket_launch</span>Open Dashboard
+          </a>
+          <button onclick="doSignOut()" class="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-on-surface hover:bg-surface rounded-xl transition-colors text-left">
+            <span class="material-symbols-outlined text-[16px] text-on-surface-var">logout</span>Sign Out
+          </button>
+        </div>
+      </div>
+      <button onclick="toggleMobileMenu()" class="md:hidden text-white">
+        <span class="material-symbols-outlined text-[28px]">menu</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="mobileMenu" class="hidden md:hidden bg-[#050d1a] border-t border-white/10 px-6 pb-5 pt-2 flex flex-col gap-1">
+    <a href="#why"      onclick="closeMobileMenu()" class="px-4 py-3 text-[15px] text-white/70 hover:text-white rounded-xl">Why InsightEngine</a>
+    <a href="#features" onclick="closeMobileMenu()" class="px-4 py-3 text-[15px] text-white/70 hover:text-white rounded-xl">Features</a>
+    <a href="#how"      onclick="closeMobileMenu()" class="px-4 py-3 text-[15px] text-white/70 hover:text-white rounded-xl">How It Works</a>
+    <a href="#pricing"  onclick="closeMobileMenu()" class="px-4 py-3 text-[15px] text-white/70 hover:text-white rounded-xl">Pricing</a>
+    <div class="border-t border-white/10 mt-2 pt-3 flex flex-col gap-2">
+      <button onclick="openAuth('signin');closeMobileMenu()" class="px-4 py-3 text-[15px] font-semibold text-white/80 text-left">Sign In</button>
+      <button onclick="openAuth('signup');closeMobileMenu()" class="btn-glow px-5 py-3 text-[15px] font-semibold text-white rounded-xl text-center">Get Started Free</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════
+     HERO
+     ═══════════════════════ -->
+<section class="relative min-h-screen hero-bg flex flex-col items-center justify-center text-center overflow-hidden pt-16">
+  <canvas id="heroCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+
+  <div class="relative z-10 max-w-5xl mx-auto px-6 py-28">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/15 bg-white/5 text-white/70 text-[11px] font-mono font-semibold tracking-widest uppercase mb-8">
+      <span class="w-1.5 h-1.5 rounded-full bg-brand pulse-dot"></span>
+      8 Specialist AI Agents · Powered by Gemini
+    </div>
+
+    <h1 class="text-[52px] md:text-[72px] font-black leading-[1.05] tracking-tight mb-6">
+      <span class="text-white">Turn Account Research</span><br/>
+      <span class="gradient-text">from Days to Minutes</span>
+    </h1>
+
+    <p class="text-[18px] md:text-[20px] text-white/55 leading-relaxed max-w-3xl mx-auto mb-12">
+      Eight named AI agents research every account, score fit 1–10, and push qualified leads to
+      <strong class="text-white/90 font-semibold">Pipedrive</strong> with a full intelligence dossier — automatically.
+    </p>
+
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-0 max-w-lg mx-auto mb-16">
+      <input id="heroEmail" type="email" placeholder="Enter your work email"
+        class="flex-1 w-full px-5 py-4 bg-white/10 border border-white/20 border-r-0 text-white placeholder-white/35 text-[15px] rounded-l-xl focus:outline-none focus:border-brand/60"
+        onkeydown="if(event.key==='Enter')heroSignup()"/>
+      <button onclick="heroSignup()" class="btn-glow px-7 py-4 text-[15px] font-bold text-white rounded-r-xl whitespace-nowrap w-full sm:w-auto">
+        Get Early Access
+      </button>
+    </div>
+
+    <div class="flex flex-wrap justify-center gap-12 md:gap-16">
+      <div class="text-center">
+        <p class="text-[38px] font-black text-white leading-none">8×</p>
+        <p class="text-[11px] font-mono text-white/40 tracking-widest mt-1">FASTER RESEARCH</p>
+      </div>
+      <div class="text-center">
+        <p class="text-[38px] font-black text-white leading-none">94%</p>
+        <p class="text-[11px] font-mono text-white/40 tracking-widest mt-1">ACCURACY RATE</p>
+      </div>
+      <div class="text-center">
+        <p class="text-[38px] font-black text-white leading-none">8</p>
+        <p class="text-[11px] font-mono text-white/40 tracking-widest mt-1">SPECIALIST AGENTS</p>
+      </div>
+      <div class="text-center">
+        <p class="text-[38px] font-black text-white leading-none">5×</p>
+        <p class="text-[11px] font-mono text-white/40 tracking-widest mt-1">PARALLEL RUNS</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/25">
+    <span class="text-[10px] font-mono tracking-widest uppercase">Scroll</span>
+    <span class="material-symbols-outlined text-[20px]">keyboard_arrow_down</span>
+  </div>
+</section>
+
+<!-- ═══════════════════════
+     LOGOS STRIP
+     ═══════════════════════ -->
+<div class="py-12 bg-white border-y border-outline-var/20 overflow-hidden">
+  <p class="text-center text-[10px] font-mono font-semibold text-on-surface-var/50 tracking-widest uppercase mb-8">TRUSTED BY REVENUE TEAMS AT</p>
+  <div class="overflow-hidden flex">
+    <div class="marquee-track items-center">
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Acme Corp</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">NovaTech</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Meridian AI</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Strata Labs</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Velox Systems</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Prism Data</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Cortex CRM</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Apex Revenue</span>
+      <!-- duplicate for seamless loop -->
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Acme Corp</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">NovaTech</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Meridian AI</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Strata Labs</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Velox Systems</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Prism Data</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Cortex CRM</span>
+      <span class="text-[20px] font-black text-on-surface/15 tracking-tight">Apex Revenue</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════
+     WHY / PROBLEM
+     ═══════════════════════ -->
+<section id="why" class="py-24 bg-surface">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="text-center mb-16 reveal">
+      <span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">The Problem</span>
+      <h2 class="text-[44px] md:text-[54px] font-black text-on-surface leading-tight tracking-tight mt-3">B2B research is broken</h2>
+      <p class="text-[18px] text-on-surface-var leading-relaxed max-w-2xl mx-auto mt-4">Sales reps spend 4+ hours manually researching each account. Most of that effort is wasted on leads that never qualify.</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="reveal bg-white rounded-2xl p-8 border border-outline-var/20 hover:border-red-200 hover:bg-red-50/40 transition-all">
+        <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-5">
+          <span class="material-symbols-outlined text-red-500 text-[24px]">schedule</span>
+        </div>
+        <h3 class="text-[20px] font-bold text-on-surface mb-2">Hours of manual work</h3>
+        <p class="text-[15px] text-on-surface-var leading-relaxed">Reps copy-paste from LinkedIn, Google News, and company websites — losing hours on every single account before a single call.</p>
+      </div>
+      <div class="reveal bg-white rounded-2xl p-8 border border-outline-var/20 hover:border-amber-200 hover:bg-amber-50/40 transition-all">
+        <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-5">
+          <span class="material-symbols-outlined text-amber-500 text-[24px]">shuffle</span>
+        </div>
+        <h3 class="text-[20px] font-bold text-on-surface mb-2">Inconsistent scoring</h3>
+        <p class="text-[15px] text-on-surface-var leading-relaxed">Every rep scores differently. High-fit accounts get missed; low-fit accounts waste entire sales cycles. No standard exists.</p>
+      </div>
+      <div class="reveal bg-white rounded-2xl p-8 border border-outline-var/20 hover:border-purple-200 hover:bg-purple-50/40 transition-all">
+        <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-5">
+          <span class="material-symbols-outlined text-purple-500 text-[24px]">sync_disabled</span>
+        </div>
+        <h3 class="text-[20px] font-bold text-on-surface mb-2">CRM never gets updated</h3>
+        <p class="text-[15px] text-on-surface-var leading-relaxed">Research lives in Slack, notes, and brains. Nothing lands in Pipedrive. The next rep starts from zero every time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════
+     ABOUT / SOLUTION
+     ═══════════════════════ -->
+<section id="about" class="py-24 bg-white">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="grid md:grid-cols-2 gap-16 items-center">
+      <div class="reveal">
+        <span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">The Solution</span>
+        <h2 class="text-[42px] md:text-[50px] font-black text-on-surface leading-tight tracking-tight mt-3 mb-6">Your AI research department</h2>
+        <p class="text-[17px] text-on-surface-var leading-relaxed mb-5">InsightEngine deploys eight specialist agents the moment you connect a spreadsheet. They fan out across the web — news archives, LinkedIn, company sites — synthesize everything, and score each account against your exact value proposition.</p>
+        <p class="text-[17px] text-on-surface-var leading-relaxed mb-8">Qualified accounts land in Pipedrive with a full dossier, outreach angles, and LinkedIn Sales Navigator search strings — in minutes, not days.</p>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center gap-3 text-[15px] text-on-surface font-medium">
+            <span class="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            Reads your Google Sheet of prospect accounts
+          </div>
+          <div class="flex items-center gap-3 text-[15px] text-on-surface font-medium">
+            <span class="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            Scores each account 1–10 against your value prop
+          </div>
+          <div class="flex items-center gap-3 text-[15px] text-on-surface font-medium">
+            <span class="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            Pushes qualified leads to Pipedrive automatically
+          </div>
+          <div class="flex items-center gap-3 text-[15px] text-on-surface font-medium">
+            <span class="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            Generates LinkedIn Sales Navigator search strings
+          </div>
+        </div>
+      </div>
+
+      <!-- Mini dashboard preview -->
+      <div class="reveal">
+        <div class="bg-surface rounded-2xl border border-outline-var/20 overflow-hidden shadow-xl">
+          <div class="bg-[#050d1a] px-5 py-3 flex items-center gap-2">
+            <div class="w-3 h-3 rounded-full bg-red-400/70"></div>
+            <div class="w-3 h-3 rounded-full bg-amber-400/70"></div>
+            <div class="w-3 h-3 rounded-full bg-green-400/70"></div>
+            <span class="ml-3 text-white/30 text-[12px] font-mono">insightengine.ai/dashboard</span>
+          </div>
+          <div class="p-6 space-y-3">
+            <div class="flex items-center gap-3 p-3 bg-white rounded-xl border border-outline-var/20">
+              <div class="w-8 h-8 bg-brand/10 rounded-lg flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-brand text-[16px]">business</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[13px] font-semibold text-on-surface">Acme Fleet Management</p>
+                <p class="text-[11px] font-mono text-on-surface-var">acmefleet.com</p>
+              </div>
+              <span class="px-2 py-0.5 bg-brand/10 text-brand rounded text-[11px] font-mono font-bold shrink-0">9/10</span>
+              <span class="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-white rounded-xl border border-outline-var/20">
+              <div class="w-8 h-8 bg-brand/10 rounded-lg flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-brand text-[16px]">business</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[13px] font-semibold text-on-surface">Meridian Logistics</p>
+                <p class="text-[11px] font-mono text-on-surface-var">meridianlog.io</p>
+              </div>
+              <span class="px-2 py-0.5 bg-brand/10 text-brand rounded text-[11px] font-mono font-bold shrink-0">8/10</span>
+              <span class="w-2 h-2 rounded-full bg-green-500 pulse-dot shrink-0"></span>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-white rounded-xl border border-outline-var/20 opacity-40">
+              <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-gray-400 text-[16px]">business</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[13px] font-semibold text-on-surface">Dropship Inc</p>
+                <p class="text-[11px] font-mono text-on-surface-var">dropship.com</p>
+              </div>
+              <span class="px-2 py-0.5 bg-gray-100 text-gray-400 rounded text-[11px] font-mono font-bold shrink-0">3/10</span>
+              <span class="w-2 h-2 rounded-full bg-gray-300 shrink-0"></span>
+            </div>
+            <div class="p-3 bg-green-50 border border-green-200 rounded-xl mt-1">
+              <p class="text-[10px] font-mono font-semibold text-green-600 uppercase tracking-wide mb-1">Acme Fleet — Key Insight</p>
+              <p class="text-[12px] text-green-800 leading-relaxed">Recent $12M Series B + 3 open Fleet Ops Manager roles. CSA compliance pressure evident. High-intent buyer signal.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════
+     FEATURES
+     ═══════════════════════ -->
+<section id="features" class="py-24 bg-surface">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="text-center mb-16 reveal">
+      <span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">Features</span>
+      <h2 class="text-[44px] md:text-[54px] font-black text-on-surface leading-tight tracking-tight mt-3">Everything your pipeline needs</h2>
+      <p class="text-[18px] text-on-surface-var mt-4 max-w-2xl mx-auto">From raw prospect list to enriched CRM record — fully automated, deeply intelligent.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div class="feat-card reveal bg-white rounded-2xl p-7 border border-outline-var/20">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-5" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[22px]">travel_explore</span>
+        </div>
+        <h3 class="text-[18px] font-bold text-on-surface mb-2">Deep Web Research</h3>
+        <p class="text-[14px] text-on-surface-var leading-relaxed">Atlas searches the web and scrapes company sites via Firecrawl. Real intelligence — not surface-level summaries.</p>
+      </div>
+      <div class="feat-card reveal bg-white rounded-2xl p-7 border border-outline-var/20">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-5" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[22px]">newspaper</span>
+        </div>
+        <h3 class="text-[18px] font-bold text-on-surface mb-2">Live News Intelligence</h3>
+        <p class="text-[14px] text-on-surface-var leading-relaxed">Echo scans funding rounds, product launches, exec changes, and growth signals via Tavily real-time search.</p>
+      </div>
+      <div class="feat-card reveal bg-white rounded-2xl p-7 border border-outline-var/20">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-5" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[22px]">group</span>
+        </div>
+        <h3 class="text-[18px] font-bold text-on-surface mb-2">LinkedIn Analysis</h3>
+        <p class="text-[14px] text-on-surface-var leading-relaxed">Talent maps team growth, open roles, and pain signals to surface buyer intent before you ever pick up the phone.</p>
+      </div>
+      <div class="feat-card reveal bg-white rounded-2xl p-7 border border-outline-var/20">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-5" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[22px]">grade</span>
+        </div>
+        <h3 class="text-[18px] font-bold text-on-surface mb-2">Strict AI Scoring</h3>
+        <p class="text-[14px] text-on-surface-var leading-relaxed">Oracle scores 1–10 against your exact value proposition, with automatic retry on borderline accounts using a fresh angle.</p>
+      </div>
+      <div class="feat-card reveal bg-white rounded-2xl p-7 border border-outline-var/20">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-5" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[22px]">manage_search</span>
+        </div>
+        <h3 class="text-[18px] font-bold text-on-surface mb-2">Sales Nav Strings</h3>
+        <p class="text-[14px] text-on-surface-var leading-relaxed">Pitch generates ready-to-paste LinkedIn Sales Navigator Boolean searches targeting exactly the right stakeholders.</p>
+      </div>
+      <div class="feat-card reveal bg-white rounded-2xl p-7 border border-outline-var/20">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-5" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[22px]">sync_alt</span>
+        </div>
+        <h3 class="text-[18px] font-bold text-on-surface mb-2">Automatic CRM Sync</h3>
+        <p class="text-[14px] text-on-surface-var leading-relaxed">Ledger pushes qualified accounts to Pipedrive with org record, full dossier note, and custom labels — zero manual input.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════
+     AGENT CREW
+     ═══════════════════════ -->
+<section class="py-24 bg-white">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="text-center mb-16 reveal">
+      <span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">The Crew</span>
+      <h2 class="text-[44px] md:text-[54px] font-black text-on-surface leading-tight tracking-tight mt-3">Meet your 8 AI agents</h2>
+      <p class="text-[18px] text-on-surface-var mt-4 max-w-2xl mx-auto">Each agent has one job and does it with surgical precision. Together they cover the entire research pipeline.</p>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="agent-card reveal bg-surface rounded-2xl p-6 border border-outline-var/20">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[20px]">travel_explore</span>
+        </div>
+        <p class="text-[15px] font-bold text-on-surface">Atlas</p>
+        <p class="text-[13px] text-on-surface-var mt-1">Web research &amp; homepage scraping</p>
+      </div>
+      <div class="agent-card reveal bg-surface rounded-2xl p-6 border border-outline-var/20">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[20px]">hearing</span>
+        </div>
+        <p class="text-[15px] font-bold text-on-surface">Echo</p>
+        <p class="text-[13px] text-on-surface-var mt-1">News scanning &amp; signal extraction</p>
+      </div>
+      <div class="agent-card reveal bg-surface rounded-2xl p-6 border border-outline-var/20">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[20px]">group</span>
+        </div>
+        <p class="text-[15px] font-bold text-on-surface">Talent</p>
+        <p class="text-[13px] text-on-surface-var mt-1">LinkedIn team &amp; role analysis</p>
+      </div>
+      <div class="agent-card reveal bg-surface rounded-2xl p-6 border border-outline-var/20">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[20px]">lightbulb</span>
+        </div>
+        <p class="text-[15px] font-bold text-on-surface">Oracle</p>
+        <p class="text-[13px] text-on-surface-var mt-1">Hypothesis building &amp; reasoning</p>
+      </div>
+      <div class="agent-card reveal bg-surface rounded-2xl p-6 border border-outline-var/20">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[20px]">grade</span>
+        </div>
+        <p class="text-[15px] font-bold text-on-surface">Judge</p>
+        <p class="text-[13px] text-on-surface-var mt-1">1–10 fit scoring &amp; qualification</p>
+      </div>
+      <div class="agent-card reveal bg-surface rounded-2xl p-6 border border-outline-var/20">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[20px]">manage_search</span>
+        </div>
+        <p class="text-[15px] font-bold text-on-surface">Pitch</p>
+        <p class="text-[13px] text-on-surface-var mt-1">Sales Nav search generation</p>
+      </div>
+      <div class="agent-card reveal bg-surface rounded-2xl p-6 border border-outline-var/20">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[20px]">article</span>
+        </div>
+        <p class="text-[15px] font-bold text-on-surface">Scribe</p>
+        <p class="text-[13px] text-on-surface-var mt-1">Full dossier &amp; briefing writing</p>
+      </div>
+      <div class="agent-card reveal bg-surface rounded-2xl p-6 border border-outline-var/20">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style="background:rgba(70,72,212,0.1)">
+          <span class="material-symbols-outlined text-brand text-[20px]">sync_alt</span>
+        </div>
+        <p class="text-[15px] font-bold text-on-surface">Ledger</p>
+        <p class="text-[13px] text-on-surface-var mt-1">Pipedrive CRM sync &amp; labels</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════
+     HOW IT WORKS
+     ═══════════════════════ -->
+<section id="how" class="py-24 bg-surface">
+  <div class="max-w-4xl mx-auto px-6">
+    <div class="text-center mb-16 reveal">
+      <span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">How It Works</span>
+      <h2 class="text-[44px] md:text-[54px] font-black text-on-surface leading-tight tracking-tight mt-3">Four steps to enriched pipeline</h2>
+    </div>
+    <div class="space-y-5">
+      <div class="reveal flex gap-6 items-start">
+        <div class="flex flex-col items-center shrink-0">
+          <div class="w-12 h-12 rounded-full bg-brand flex items-center justify-center text-white font-black text-[18px]">1</div>
+          <div class="w-px h-16 mt-2" style="background:linear-gradient(180deg,#4648d4,transparent)"></div>
+        </div>
+        <div class="bg-white rounded-2xl border border-outline-var/20 p-7 flex-1">
+          <h3 class="text-[20px] font-bold text-on-surface mb-2">Connect your Google Sheet</h3>
+          <p class="text-[15px] text-on-surface-var leading-relaxed">Paste your sheet ID, enter your value proposition, and click Start. That's your entire configuration. No ETL, no CSV uploads.</p>
+        </div>
+      </div>
+      <div class="reveal flex gap-6 items-start">
+        <div class="flex flex-col items-center shrink-0">
+          <div class="w-12 h-12 rounded-full bg-brand flex items-center justify-center text-white font-black text-[18px]">2</div>
+          <div class="w-px h-16 mt-2" style="background:linear-gradient(180deg,#4648d4,transparent)"></div>
+        </div>
+        <div class="bg-white rounded-2xl border border-outline-var/20 p-7 flex-1">
+          <h3 class="text-[20px] font-bold text-on-surface mb-2">Agents fan out in parallel</h3>
+          <p class="text-[15px] text-on-surface-var leading-relaxed">Five accounts process concurrently. Eight agents per account cover web research, news, LinkedIn, scoring, and dossier writing simultaneously.</p>
+        </div>
+      </div>
+      <div class="reveal flex gap-6 items-start">
+        <div class="flex flex-col items-center shrink-0">
+          <div class="w-12 h-12 rounded-full bg-brand flex items-center justify-center text-white font-black text-[18px]">3</div>
+          <div class="w-px h-16 mt-2" style="background:linear-gradient(180deg,#4648d4,transparent)"></div>
+        </div>
+        <div class="bg-white rounded-2xl border border-outline-var/20 p-7 flex-1">
+          <h3 class="text-[20px] font-bold text-on-surface mb-2">Strict scoring with auto-retry</h3>
+          <p class="text-[15px] text-on-surface-var leading-relaxed">Accounts below your threshold are re-evaluated with a different hypothesis angle. Still below? Dropped. Above? Shipped to Pipedrive.</p>
+        </div>
+      </div>
+      <div class="reveal flex gap-6 items-start">
+        <div class="shrink-0 w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white">
+          <span class="material-symbols-outlined text-[22px]">check</span>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-2xl p-7 flex-1">
+          <h3 class="text-[20px] font-bold text-on-surface mb-2">Qualified leads hit your CRM</h3>
+          <p class="text-[15px] text-on-surface-var leading-relaxed">Ledger creates the Pipedrive org, attaches the full dossier, applies custom labels, and adds LinkedIn Boolean search strings. Your reps show up prepared.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════
+     PRICING
+     ═══════════════════════ -->
+<section id="pricing" class="py-24 bg-white">
+  <div class="max-w-5xl mx-auto px-6">
+    <div class="text-center mb-16 reveal">
+      <span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">Pricing</span>
+      <h2 class="text-[44px] md:text-[54px] font-black text-on-surface leading-tight tracking-tight mt-3">Two plans, no surprises</h2>
+      <p class="text-[18px] text-on-surface-var mt-4">Pay monthly, cancel anytime. No setup fees, no contracts.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+
+      <!-- Pro $149 -->
+      <div class="price-card reveal bg-surface rounded-2xl border border-outline-var/20 p-9">
+        <p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-widest mb-3">Pro</p>
+        <div class="flex items-end gap-1 mb-1">
+          <span class="text-[56px] font-black text-on-surface leading-none">$149</span>
+          <span class="text-[18px] text-on-surface-var mb-2.5">/mo</span>
+        </div>
+        <p class="text-[14px] text-on-surface-var mb-8">For individual reps and small teams.</p>
+        <ul class="space-y-3.5 mb-10">
+          <li class="flex items-center gap-3 text-[14px]">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:rgba(70,72,212,0.1)"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            <span class="text-on-surface">500 account enrichments / month</span>
+          </li>
+          <li class="flex items-center gap-3 text-[14px]">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:rgba(70,72,212,0.1)"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            <span class="text-on-surface">All 8 specialist agents</span>
+          </li>
+          <li class="flex items-center gap-3 text-[14px]">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:rgba(70,72,212,0.1)"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            <span class="text-on-surface">5× parallel batch processing</span>
+          </li>
+          <li class="flex items-center gap-3 text-[14px]">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:rgba(70,72,212,0.1)"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            <span class="text-on-surface">Pipedrive + Google Sheets sync</span>
+          </li>
+          <li class="flex items-center gap-3 text-[14px]">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:rgba(70,72,212,0.1)"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            <span class="text-on-surface">LinkedIn Sales Navigator strings</span>
+          </li>
+          <li class="flex items-center gap-3 text-[14px]">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:rgba(70,72,212,0.1)"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            <span class="text-on-surface">Email support</span>
+          </li>
+        </ul>
+        <button onclick="startCheckout('pro')" class="w-full py-3.5 border-2 border-brand text-brand font-bold rounded-xl hover:bg-brand hover:text-white transition-all text-[15px]">
+          Get Pro
+        </button>
+      </div>
+
+      <!-- Scale $300 -->
+      <div class="price-card reveal rounded-2xl border p-9 relative overflow-hidden" style="background:#050d1a;border-color:rgba(70,72,212,0.4);box-shadow:0 25px 60px rgba(70,72,212,0.2)">
+        <div class="absolute top-5 right-5 px-3 py-1 bg-brand rounded-full text-white text-[10px] font-mono font-bold tracking-wide">MOST VALUE</div>
+        <p class="text-[11px] font-mono font-semibold uppercase tracking-widest mb-3" style="color:rgba(255,255,255,0.4)">Scale</p>
+        <div class="flex items-end gap-1 mb-1">
+          <span class="text-[56px] font-black text-white leading-none">$300</span>
+          <span class="text-[18px] mb-2.5" style="color:rgba(255,255,255,0.35)">/mo</span>
+        </div>
+        <p class="text-[14px] mb-8" style="color:rgba(255,255,255,0.35)">For growing revenue teams.</p>
+        <ul class="space-y-3.5 mb-10">
+          <li class="flex items-center gap-3 text-[14px]">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:rgba(70,72,212,0.3)"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            <span class="text-white">Unlimited enrichments</span>
+          </li>
+          <li class="flex items-center gap-3 text-[14px]">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:rgba(70,72,212,0.3)"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            <span class="text-white">All 8 specialist agents</span>
+          </li>
+          <li class="flex items-center gap-3 text-[14px]">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:rgba(70,72,212,0.3)"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            <span class="text-white">10× parallel batch processing</span>
+          </li>
+          <li class="flex items-center gap-3 text-[14px]">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:rgba(70,72,212,0.3)"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            <span class="text-white">Everything in Pro</span>
+          </li>
+          <li class="flex items-center gap-3 text-[14px]">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:rgba(70,72,212,0.3)"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            <span class="text-white">Up to 5 team seats</span>
+          </li>
+          <li class="flex items-center gap-3 text-[14px]">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style="background:rgba(70,72,212,0.3)"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>
+            <span class="text-white">Priority Slack support + onboarding</span>
+          </li>
+        </ul>
+        <button onclick="startCheckout('scale')" class="btn-glow w-full py-3.5 font-bold text-white rounded-xl text-[15px]">
+          Get Scale
+        </button>
+      </div>
+
+    </div>
+
+    <p class="text-center text-[13px] font-mono mt-10" style="color:#888">
+      Payments securely processed by <strong style="color:#0b1c30">Paddle</strong> &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp; No long-term contracts
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════════════════
+     TESTIMONIALS
+     ═══════════════════════ -->
+<section class="py-24 bg-surface">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="text-center mb-16 reveal">
+      <span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">Testimonials</span>
+      <h2 class="text-[44px] font-black text-on-surface leading-tight tracking-tight mt-3">Revenue teams love it</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="reveal bg-white rounded-2xl border border-outline-var/20 p-8 hover:border-brand/30 transition-colors">
+        <div class="flex gap-0.5 mb-5">
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+        </div>
+        <p class="text-[15px] text-on-surface leading-relaxed mb-6">"We cut research time by 80%. The agents surface signals we'd never find manually — funding rounds, exec changes, open roles. InsightEngine is now the first step in every BDR's workflow."</p>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-white font-bold text-[13px] shrink-0">SR</div>
+          <div>
+            <p class="text-[14px] font-semibold text-on-surface">Sarah Reynolds</p>
+            <p class="text-[12px] font-mono text-on-surface-var">Head of BDR · NovaTech</p>
+          </div>
+        </div>
+      </div>
+      <div class="reveal bg-white rounded-2xl border border-outline-var/20 p-8 hover:border-brand/30 transition-colors">
+        <div class="flex gap-0.5 mb-5">
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+        </div>
+        <p class="text-[15px] text-on-surface leading-relaxed mb-6">"The Pipedrive integration is seamless. Reps open a deal and the full dossier is already there — hypothesis, news, LinkedIn signals, outreach angles. It's like having a research analyst per rep."</p>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-[13px] shrink-0">MK</div>
+          <div>
+            <p class="text-[14px] font-semibold text-on-surface">Marcus Kim</p>
+            <p class="text-[12px] font-mono text-on-surface-var">VP Sales · Strata Labs</p>
+          </div>
+        </div>
+      </div>
+      <div class="reveal bg-white rounded-2xl border border-outline-var/20 p-8 hover:border-brand/30 transition-colors">
+        <div class="flex gap-0.5 mb-5">
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+          <span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span>
+        </div>
+        <p class="text-[15px] text-on-surface leading-relaxed mb-6">"We ran 200 accounts in an afternoon. The 9/10 accounts had every signal we look for. Dropped the 3s without hesitation. Pipeline quality improved immediately — fewer wasted cycles."</p>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-[13px] shrink-0">AL</div>
+          <div>
+            <p class="text-[14px] font-semibold text-on-surface">Aisha Laurent</p>
+            <p class="text-[12px] font-mono text-on-surface-var">Revenue Ops · Meridian AI</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════
+     FINAL CTA
+     ═══════════════════════ -->
+<section class="relative py-32 hero-bg overflow-hidden text-center">
+  <canvas id="ctaCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+  <div class="relative z-10 max-w-3xl mx-auto px-6">
+    <span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">Get Started Today</span>
+    <h2 class="text-[48px] md:text-[60px] font-black text-white leading-tight tracking-tight mt-3 mb-5">
+      Enrich your first accounts<br/><span class="gradient-text">in under 5 minutes</span>
+    </h2>
+    <p class="text-[18px] mb-10" style="color:rgba(255,255,255,0.55)">No credit card. No setup fees. 25 free enrichments to prove the value.</p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <button onclick="openAuth('signup')" class="btn-glow px-10 py-4 text-[17px] font-bold text-white rounded-2xl">
+        Create Free Account
+      </button>
+      <a href="#features" class="px-10 py-4 text-[17px] font-semibold transition-colors" style="color:rgba(255,255,255,0.55)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">
+        See all features →
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════
+     FOOTER
+     ═══════════════════════ -->
+<footer style="background:#030a14" class="text-white py-16">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="grid md:grid-cols-4 gap-10 mb-12">
+      <div>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-white text-[20px]" style="font-variation-settings:'FILL' 1">analytics</span>
+          </div>
+          <span class="text-[18px] font-black tracking-tight">InsightEngine</span>
+        </div>
+        <p class="text-[14px] leading-relaxed" style="color:rgba(255,255,255,0.35)">AI-native account research for modern revenue teams.</p>
+      </div>
+      <div>
+        <p class="text-[11px] font-mono font-semibold uppercase tracking-widest mb-4" style="color:rgba(255,255,255,0.25)">Product</p>
+        <ul class="space-y-2.5">
+          <li><a href="#features" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.55)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Features</a></li>
+          <li><a href="#pricing"  class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.55)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Pricing</a></li>
+          <li><a href="#how"      class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.55)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">How It Works</a></li>
+          <li><a href="/dashboard" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.55)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Dashboard</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="text-[11px] font-mono font-semibold uppercase tracking-widest mb-4" style="color:rgba(255,255,255,0.25)">Integrations</p>
+        <ul class="space-y-2.5">
+          <li><span class="text-[14px]" style="color:rgba(255,255,255,0.4)">Google Sheets</span></li>
+          <li><span class="text-[14px]" style="color:rgba(255,255,255,0.4)">Pipedrive CRM</span></li>
+          <li><span class="text-[14px]" style="color:rgba(255,255,255,0.4)">LinkedIn Sales Nav</span></li>
+          <li><span class="text-[14px]" style="color:rgba(255,255,255,0.4)">Gemini 2.0 Flash</span></li>
+        </ul>
+      </div>
+      <div>
+        <p class="text-[11px] font-mono font-semibold uppercase tracking-widest mb-4" style="color:rgba(255,255,255,0.25)">Company</p>
+        <ul class="space-y-2.5">
+          <li><a href="#about" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.55)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">About</a></li>
+          <li><a href="#" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.55)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Blog</a></li>
+          <li><a href="#" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.55)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Privacy Policy</a></li>
+          <li><a href="#" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.55)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4" style="border-color:rgba(255,255,255,0.08)">
+      <p class="text-[13px] font-mono" style="color:rgba(255,255,255,0.25)">© 2026 InsightEngine. All rights reserved.</p>
+      <p class="text-[13px] font-mono" style="color:rgba(255,255,255,0.18)">Built with Gemini · Tavily · Firecrawl · FastAPI</p>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════════
+     AUTH MODAL
+     ═══════════════════════ -->
+<div id="authModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+  <div class="modal-bg absolute inset-0" onclick="closeAuth()"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+
+    <div class="flex items-center justify-between px-8 pt-7 pb-5 border-b border-outline-var/20">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-white text-[20px]" style="font-variation-settings:'FILL' 1">analytics</span>
+        </div>
+        <span class="text-[17px] font-black text-on-surface tracking-tight">InsightEngine</span>
+      </div>
+      <button onclick="closeAuth()" class="w-8 h-8 flex items-center justify-center text-on-surface-var hover:text-on-surface rounded-full hover:bg-surface transition-colors">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <div class="flex border-b border-outline-var/20 px-8">
+      <button id="tabSignin" class="auth-tab active py-3 mr-6 text-[14px] font-semibold text-brand" onclick="switchAuthTab('signin')">Sign In</button>
+      <button id="tabSignup" class="auth-tab py-3 text-[14px] font-semibold text-on-surface-var" onclick="switchAuthTab('signup')">Create Account</button>
+    </div>
+
+    <div class="px-8 py-7">
+      <div id="authMsg" class="hidden mb-4 p-3 rounded-xl text-[14px] font-medium"></div>
+
+      <!-- Sign In -->
+      <form id="signinForm" onsubmit="doSignIn(event)" class="space-y-4">
+        <div>
+          <label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">Email</label>
+          <input id="siEmail" type="email" required placeholder="you@company.com"
+            class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface placeholder-on-surface-var/40 focus:border-brand focus:outline-none transition-colors"/>
+        </div>
+        <div>
+          <label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">Password</label>
+          <input id="siPassword" type="password" required placeholder="••••••••"
+            class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface focus:border-brand focus:outline-none transition-colors"/>
+        </div>
+        <button type="submit" id="signinBtn" class="btn-glow w-full py-3.5 font-bold text-white rounded-xl text-[15px]">Sign In</button>
+      </form>
+
+      <!-- Sign Up -->
+      <form id="signupForm" onsubmit="doSignUp(event)" class="space-y-4 hidden">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">First Name</label>
+            <input id="suFirst" type="text" required placeholder="Jane"
+              class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface placeholder-on-surface-var/40 focus:border-brand focus:outline-none transition-colors"/>
+          </div>
+          <div>
+            <label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">Last Name</label>
+            <input id="suLast" type="text" required placeholder="Smith"
+              class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface placeholder-on-surface-var/40 focus:border-brand focus:outline-none transition-colors"/>
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">Work Email</label>
+          <input id="suEmail" type="email" required placeholder="you@company.com"
+            class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface placeholder-on-surface-var/40 focus:border-brand focus:outline-none transition-colors"/>
+        </div>
+        <div>
+          <label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">Company <span class="normal-case font-normal text-on-surface-var/60">(optional)</span></label>
+          <input id="suCompany" type="text" placeholder="Acme Corp"
+            class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface placeholder-on-surface-var/40 focus:border-brand focus:outline-none transition-colors"/>
+        </div>
+        <div>
+          <label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">Password</label>
+          <input id="suPassword" type="password" required minlength="8" placeholder="Min. 8 characters"
+            class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface focus:border-brand focus:outline-none transition-colors"/>
+        </div>
+        <button type="submit" id="signupBtn" class="btn-glow w-full py-3.5 font-bold text-white rounded-xl text-[15px]">Create Free Account</button>
+      </form>
+
+      <div class="flex items-center gap-3 my-5">
+        <div class="flex-1 h-px bg-outline-var/30"></div>
+        <span class="text-[12px] font-mono text-on-surface-var">OR</span>
+        <div class="flex-1 h-px bg-outline-var/30"></div>
+      </div>
+
+      <button onclick="doGoogleSignIn()" class="w-full flex items-center justify-center gap-3 py-3.5 border border-outline-var rounded-xl text-[15px] font-semibold text-on-surface hover:bg-surface transition-colors">
+        <svg width="20" height="20" viewBox="0 0 48 48">
+          <path d="M43.6,20H42V20H24v8h11.3C33.7,32.7,29.3,36,24,36c-6.6,0-12-5.4-12-12s5.4-12,12-12c3.1,0,5.8,1.2,8,3l5.7-5.7C34,6.1,29.3,4,24,4C13,4,4,13,4,24s9,20,20,20s20-9,20-20C44,22.7,43.9,21.3,43.6,20z" fill="#FFC107"/>
+          <path d="M6.3,14.7l6.6,4.8C14.7,15.1,19,12,24,12c3.1,0,5.8,1.2,8,3l5.7-5.7C34,6.1,29.3,4,24,4C16.3,4,9.7,8.3,6.3,14.7z" fill="#FF3D00"/>
+          <path d="M24,44c5.2,0,9.9-2,13.4-5.2l-6.2-5.2C29.2,35.1,26.7,36,24,36c-5.2,0-9.6-3.3-11.3-7.9l-6.5,5C9.5,39.6,16.2,44,24,44z" fill="#4CAF50"/>
+          <path d="M43.6,20H42V20H24v8h11.3c-0.8,2.2-2.2,4.2-4.1,5.6l6.2,5.2C37,39.2,44,34,44,24C44,22.7,43.9,21.3,43.6,20z" fill="#1976D2"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <p class="text-center text-[12px] text-on-surface-var mt-5">
+        By signing up you agree to our
+        <a href="#" class="text-brand hover:underline">Terms</a> &amp;
+        <a href="#" class="text-brand hover:underline">Privacy Policy</a>.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] hidden pointer-events-none">
+  <div class="bg-on-surface text-white px-6 py-3 rounded-xl text-[14px] font-medium shadow-2xl">
+    <span id="toastMsg"></span>
+  </div>
+</div>
+
+<!-- ═══════════════════════
+     JAVASCRIPT
+     ═══════════════════════ -->
+<script>
+// ── Paddle Config ─────────────────────────────────────────────────────────────
+// 1. Create products + prices in Paddle dashboard (Catalog → Products)
+// 2. Copy your client-side token: Paddle dashboard → Developer Tools → Authentication
+// 3. Copy each price's ID (starts with pri_) and paste below
+const paddleConfig = {
+  token:  'live_c8e376ae646df27cd19c64dbaaf',
+  prices: {
+    pro:   'pri_01kv82zdc4bx1es64f3sr8ra01',  // $149 / mo
+    scale: 'pri_01kv8303hjpa1d05ydv1eb8emn',  // $300 / mo
+  }
+};
+
+let _pendingPlan = null; // set when user clicks a pricing button before auth
+
+try {
+  Paddle.Initialize({
+    token: paddleConfig.token,
+    eventCallback: function(ev) {
+      if (ev.name !== 'checkout.completed') return;
+      const user = auth ? auth.currentUser : null;
+      const plan = _pendingPlan || 'pro';
+      if (user && db) {
+        db.collection('users').doc(user.uid).update({
+          plan: plan,
+          paddleCustomerId: (ev.data && ev.data.customer && ev.data.customer.id) || null,
+          planActivatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).finally(function() {
+          window.location.href = '/dashboard';
+        });
+      } else {
+        window.location.href = '/dashboard';
+      }
+    }
+  });
+} catch(e) {
+  console.warn('[Paddle] Init failed:', e);
+}
+
+function startCheckout(plan) {
+  _pendingPlan = plan;
+  openAuth('signup');
+}
+
+function _launchPaddle(user) {
+  const priceId = paddleConfig.prices[_pendingPlan];
+  const isPlaceholder = !priceId || priceId.startsWith('pri_YOUR');
+  if (isPlaceholder) {
+    console.warn('[Paddle] Replace placeholder price IDs in paddleConfig.');
+    window.location.href = '/dashboard';
+    return;
+  }
+  try {
+    Paddle.Checkout.open({
+      items: [{ priceId, quantity: 1 }],
+      customer: { email: user.email },
+      customData: { userId: user.uid, plan: _pendingPlan }
+    });
+  } catch(e) {
+    console.error('[Paddle] Checkout error', e);
+    window.location.href = '/dashboard';
+  }
+}
+
+// Called after every successful auth action
+function _afterAuth(user) {
+  if (_pendingPlan) {
+    _launchPaddle(user);
+  } else {
+    window.location.href = '/dashboard';
+  }
+}
+
+// ── Firebase Config ────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyCKANkXQf5km5Us-0jSjT0L04OrFfyDkvc",
+  authDomain:        "business-in-a-box-e58fc.firebaseapp.com",
+  projectId:         "business-in-a-box-e58fc",
+  storageBucket:     "business-in-a-box-e58fc.firebasestorage.app",
+  messagingSenderId: "888886932660",
+  appId:             "1:888886932660:web:cb8c43e848858ed48853e1",
+  measurementId:     "G-TW0900Y7SD"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth      = firebase.auth();
+const db        = firebase.firestore();
+const analytics = firebase.analytics();
+
+// ── Auth State Listener ────────────────────────────────────────────────────────
+if (auth) {
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      // If we were redirected here because of a missing paid plan, don't loop back.
+      if (new URLSearchParams(location.search).get('upgrade') === '1') {
+        // Stay on landing — show the logged-in nav so they can sign out or upgrade.
+        document.getElementById('navAuthOut').classList.add('hidden');
+        const navIn = document.getElementById('navAuthIn');
+        navIn.classList.remove('hidden');
+        navIn.classList.add('flex');
+        const av = document.getElementById('navAvatar');
+        if (av) {
+          const ini = (user.displayName || user.email || '?')
+            .split(' ').slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
+          av.textContent = ini;
+        }
+        const nm = document.getElementById('userMenuName');
+        if (nm) nm.textContent = user.displayName || user.email;
+        return;
+      }
+      // Already logged in — go straight to the dashboard
+      window.location.href = '/dashboard';
+      return;
+    }
+    // Not logged in — show the normal landing UI
+    document.getElementById('navAuthOut').classList.remove('hidden');
+    document.getElementById('navAuthIn').classList.add('hidden');
+  });
+}
+
+// ── Sign In ────────────────────────────────────────────────────────────────────
+async function doSignIn(e) {
+  e.preventDefault();
+  if (!auth) { showAuthMsg('Firebase is not configured yet. Add your config above.', 'error'); return; }
+  const btn = document.getElementById('signinBtn');
+  btn.textContent = 'Signing in…'; btn.disabled = true;
+  try {
+    const cred = await auth.signInWithEmailAndPassword(
+      document.getElementById('siEmail').value.trim(),
+      document.getElementById('siPassword').value
+    );
+    _afterAuth(cred.user);
+  } catch(err) {
+    console.error('[Sign in error]', err);
+    showAuthMsg(authError(err.code));
+    btn.textContent = 'Sign In'; btn.disabled = false;
+  }
+}
+
+// ── Sign Up ────────────────────────────────────────────────────────────────────
+async function doSignUp(e) {
+  e.preventDefault();
+  if (!auth) { showAuthMsg('Firebase is not configured yet. Add your config above.', 'error'); return; }
+  const btn         = document.getElementById('signupBtn');
+  const firstName   = document.getElementById('suFirst').value.trim();
+  const lastName    = document.getElementById('suLast').value.trim();
+  const email       = document.getElementById('suEmail').value.trim();
+  const company     = document.getElementById('suCompany').value.trim();
+  const password    = document.getElementById('suPassword').value;
+  const displayName = `${firstName} ${lastName}`.trim();
+  btn.textContent = 'Creating account…'; btn.disabled = true;
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, password);
+    await cred.user.updateProfile({ displayName });
+    if (db) {
+      await db.collection('users').doc(cred.user.uid).set({
+        email,
+        displayName,
+        company:          company || null,
+        plan:             'free',
+        enrichmentsUsed:  0,
+        enrichmentsLimit: 25,
+        createdAt:        firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    _afterAuth(cred.user);
+  } catch(err) {
+    console.error('[Sign up error]', err);
+    showAuthMsg(authError(err.code));
+    btn.textContent = 'Create Free Account'; btn.disabled = false;
+  }
+}
+
+// ── Google Sign-In ─────────────────────────────────────────────────────────────
+async function doGoogleSignIn() {
+  if (!auth) { showAuthMsg('Firebase is not configured yet.', 'error'); return; }
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const result   = await auth.signInWithPopup(provider);
+    const isNew    = result.additionalUserInfo?.isNewUser;
+    if (isNew && db) {
+      await db.collection('users').doc(result.user.uid).set({
+        email:            result.user.email,
+        displayName:      result.user.displayName || '',
+        photoURL:         result.user.photoURL || null,
+        company:          null,
+        plan:             'free',
+        enrichmentsUsed:  0,
+        enrichmentsLimit: 25,
+        createdAt:        firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    _afterAuth(result.user);
+  } catch(err) {
+    if (err.code !== 'auth/popup-closed-by-user') showAuthMsg(authError(err.code));
+  }
+}
+
+// ── Sign Out ───────────────────────────────────────────────────────────────────
+async function doSignOut() {
+  if (!auth) return;
+  await auth.signOut();
+  document.getElementById('userMenu').classList.add('hidden');
+  showToast('Signed out.');
+}
+
+// ── Hero email → sign-up ───────────────────────────────────────────────────────
+async function heroSignup() {
+  const emailEl = document.getElementById('heroEmail');
+  const email   = emailEl.value.trim();
+  if (!email || !email.includes('@')) { emailEl.focus(); return; }
+  if (db) {
+    try { await db.collection('waitlist').add({ email, source: 'hero', createdAt: firebase.firestore.FieldValue.serverTimestamp() }); }
+    catch(_) {}
+  }
+  emailEl.value = '';
+  openAuth('signup');
+  document.getElementById('suEmail').value = email;
+}
+
+// ── Auth modal helpers ─────────────────────────────────────────────────────────
+function openAuth(tab = 'signup') {
+  const m = document.getElementById('authModal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+  switchAuthTab(tab); clearAuthMsg();
+}
+function closeAuth() {
+  const m = document.getElementById('authModal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+  clearAuthMsg();
+  const sib = document.getElementById('signinBtn'); sib.textContent = 'Sign In'; sib.disabled = false;
+  const sub = document.getElementById('signupBtn'); sub.textContent = 'Create Free Account'; sub.disabled = false;
+}
+function switchAuthTab(tab) {
+  clearAuthMsg();
+  const si = document.getElementById('signinForm');
+  const su = document.getElementById('signupForm');
+  const tSI = document.getElementById('tabSignin');
+  const tSU = document.getElementById('tabSignup');
+  if (tab === 'signin') {
+    si.classList.remove('hidden'); su.classList.add('hidden');
+    tSI.classList.add('active','text-brand'); tSI.classList.remove('text-on-surface-var');
+    tSU.classList.remove('active','text-brand'); tSU.classList.add('text-on-surface-var');
+  } else {
+    su.classList.remove('hidden'); si.classList.add('hidden');
+    tSU.classList.add('active','text-brand'); tSU.classList.remove('text-on-surface-var');
+    tSI.classList.remove('active','text-brand'); tSI.classList.add('text-on-surface-var');
+  }
+}
+function showAuthMsg(msg, type = 'error') {
+  const el = document.getElementById('authMsg');
+  el.className = type === 'error'
+    ? 'mb-4 p-3 rounded-xl text-[14px] font-medium bg-red-50 text-red-600 border border-red-200'
+    : 'mb-4 p-3 rounded-xl text-[14px] font-medium bg-green-50 text-green-700 border border-green-200';
+  el.textContent = msg; el.classList.remove('hidden');
+}
+function clearAuthMsg() { document.getElementById('authMsg').classList.add('hidden'); }
+
+function authError(code) {
+  const map = {
+    'auth/invalid-email':          'Invalid email address.',
+    'auth/user-not-found':         'No account with that email. Try signing up.',
+    'auth/wrong-password':         'Incorrect password.',
+    'auth/invalid-credential':     'Incorrect email or password.',
+    'auth/email-already-in-use':   'An account already exists with this email. Try signing in.',
+    'auth/weak-password':          'Password must be at least 6 characters.',
+    'auth/too-many-requests':      'Too many attempts. Please try again later.',
+    'auth/network-request-failed': 'Network error. Check your connection.',
+    'auth/operation-not-allowed':  'Email/Password sign-in is not enabled. Go to Firebase Console → Authentication → Sign-in method and enable it.',
+    'auth/popup-blocked':          'Popup was blocked. Allow popups for this site and try again.',
+    'auth/unauthorized-domain':    'This domain is not authorised in Firebase. Add it under Authentication → Settings → Authorized domains.',
+    'auth/internal-error':         'Firebase internal error. Check the browser console for details.',
+  };
+  console.error('[Firebase auth error]', code);
+  return map[code] || `Auth error: ${code}`;
+}
+
+// ── Nav helpers ────────────────────────────────────────────────────────────────
+function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('hidden'); }
+function closeMobileMenu()  { document.getElementById('mobileMenu').classList.add('hidden'); }
+function toggleUserMenu()   { document.getElementById('userMenu').classList.toggle('hidden'); }
+document.addEventListener('click', e => {
+  const av = document.getElementById('navAvatar');
+  const um = document.getElementById('userMenu');
+  if (um && av && !av.contains(e.target) && !um.contains(e.target)) um.classList.add('hidden');
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAuth(); });
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+let _toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.remove('hidden');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+
+// ── Scroll reveal ──────────────────────────────────────────────────────────────
+const revObs = new IntersectionObserver(entries => {
+  entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('visible'); revObs.unobserve(en.target); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -32px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revObs.observe(el));
+
+// ── WebGL animated shader ──────────────────────────────────────────────────────
+function initWebGL(id) {
+  const canvas = document.getElementById(id);
+  if (!canvas || canvas._gl) return;
+  const syncSize = () => {
+    const w = canvas.clientWidth || 1200, h = canvas.clientHeight || 700;
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  };
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(syncSize).observe(canvas);
+  syncSize();
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (!gl) return;
+  canvas._gl = gl;
+
+  const vert = `attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0,1);}`;
+  const frag = `precision highp float;
+uniform float t;varying vec2 v;
+vec3 m289(vec3 x){return x-floor(x*(1./289.))*289.;}
+vec2 m289(vec2 x){return x-floor(x*(1./289.))*289.;}
+vec3 pm(vec3 x){return m289(((x*34.)+1.)*x);}
+float sn(vec2 v2){const vec4 C=vec4(.211,.366,-.577,.024);
+vec2 i=floor(v2+dot(v2,C.yy));vec2 x0=v2-i+dot(i,C.xx);
+vec2 i1=(x0.x>x0.y)?vec2(1,0):vec2(0,1);
+vec4 x12=x0.xyxy+C.xxzz;x12.xy-=i1;i=m289(i);
+vec3 p2=pm(pm(i.y+vec3(0,i1.y,1))+i.x+vec3(0,i1.x,1));
+vec3 mm=max(.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.);
+mm*=mm;mm*=mm;vec3 a0=2.*fract(p2*C.www)-1.;vec3 h=abs(a0)-.5;
+vec3 a1=a0-floor(a0+.5);vec3 g=a1*vec3(x0.x,x12.xz)+h*vec3(x0.y,x12.yw);
+mm*=1.793-.854*(a1*a1+h*h);return 130.*dot(mm,g);}
+void main(){
+vec3 dark=vec3(.02,.05,.12),mid=vec3(.27,.28,.83),hi=vec3(.38,.40,.9);
+float n1=sn(v*2.5+t*.07),n2=sn(v*5.-t*.11);
+vec3 col=mix(dark,mid,n1*.4+.2);col=mix(col,hi,n2*.18+.04);
+col+=mid*step(.97,sn(v*9.+t*.18)*.5+.5)*(.35+sin(t*2.5)*.15);
+gl_FragColor=vec4(col,.55);}`;
+
+  function mkShader(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s); return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, mkShader(gl.VERTEX_SHADER, vert));
+  gl.attachShader(prog, mkShader(gl.FRAGMENT_SHADER, frag));
+  gl.linkProgram(prog); gl.useProgram(prog);
+
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+  const aP = gl.getAttribLocation(prog, 'p');
+  gl.enableVertexAttribArray(aP);
+  gl.vertexAttribPointer(aP, 2, gl.FLOAT, false, 0, 0);
+  const uT = gl.getUniformLocation(prog, 't');
+
+  (function frame(ms) {
+    if (typeof ResizeObserver === 'undefined') syncSize();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.uniform1f(uT, ms * 0.001);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(frame);
+  })(0);
+}
+
+// Redirect from dashboard when no paid plan
+if (new URLSearchParams(location.search).get('upgrade') === '1') {
+  setTimeout(function() {
+    document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
+    showToast('A paid plan is required to access the dashboard. Choose a plan below.');
+  }, 600);
+}
+
+initWebGL('heroCanvas');
+
+// Lazy-init CTA canvas
+const ctaSec = document.getElementById('ctaCanvas')?.closest('section');
+if (ctaSec) {
+  new IntersectionObserver(([en]) => { if (en.isIntersecting) { initWebGL('ctaCanvas'); } }, { threshold: 0.05 })
+    .observe(ctaSec);
+}
+</script>
+</body>
+</html>

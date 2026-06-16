@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Account Intelligence | Globex Corp</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline-variant": "#c6c6cd",
+                    "surface-container-highest": "#d3e4fe",
+                    "on-tertiary-fixed": "#191c1e",
+                    "on-surface": "#0b1c30",
+                    "error": "#ba1a1a",
+                    "primary-container": "#131b2e",
+                    "on-primary-fixed": "#131b2e",
+                    "secondary-container": "#6063ee",
+                    "surface-tint": "#565e74",
+                    "surface": "#f8f9ff",
+                    "tertiary-fixed": "#e0e3e5",
+                    "outline": "#76777d",
+                    "surface-container-low": "#eff4ff",
+                    "on-primary-container": "#7c839b",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "primary": "#000000",
+                    "tertiary": "#000000",
+                    "on-secondary": "#ffffff",
+                    "on-background": "#0b1c30",
+                    "surface-container-high": "#dce9ff",
+                    "tertiary-container": "#191c1e",
+                    "primary-fixed-dim": "#bec6e0",
+                    "inverse-primary": "#bec6e0",
+                    "primary-fixed": "#dae2fd",
+                    "error-container": "#ffdad6",
+                    "surface-bright": "#f8f9ff",
+                    "on-error": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "surface-variant": "#d3e4fe",
+                    "surface-container": "#e5eeff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed-variant": "#2f2ebe",
+                    "on-tertiary-fixed-variant": "#444749",
+                    "on-secondary-container": "#fffbff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "secondary": "#4648d4",
+                    "tertiary-fixed-dim": "#c4c7c9",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed": "#e1e0ff",
+                    "surface-dim": "#cbdbf5",
+                    "on-tertiary-container": "#818486",
+                    "inverse-surface": "#213145",
+                    "secondary-fixed-dim": "#c0c1ff",
+                    "on-surface-variant": "#45464d",
+                    "background": "#f8f9ff",
+                    "on-secondary-fixed": "#07006c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "xl": "32px",
+                    "margin-mobile": "16px",
+                    "base": "4px",
+                    "gutter": "20px",
+                    "lg": "24px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "xs": "4px",
+                    "margin-desktop": "40px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "title-md": ["Inter"],
+                    "label-md": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "500"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-intelligence {
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-left: 4px solid #4648d4;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex overflow-hidden">
+<!-- SideNavBar (from Shared Components) -->
+<aside class="fixed left-0 top-0 h-full w-[280px] bg-surface-container-low border-r border-outline-variant/50 flex flex-col p-md gap-sm z-40 hidden md:flex">
+<div class="flex items-center gap-md px-sm mb-lg">
+<div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md font-black text-on-surface">InsightEngine</h2>
+<p class="font-label-md text-label-md text-on-surface-variant/70">AI-Powered Insights</p>
+</div>
+</div>
+<nav class="flex flex-col gap-xs flex-grow">
+<!-- Intelligence is Active -->
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-md text-label-md">Search</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">business_center</span>
+<span class="font-label-md text-label-md">Accounts</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm bg-secondary-container text-on-secondary-container rounded-lg scale-[0.98] transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">psychology</span>
+<span class="font-label-md text-label-md">Intelligence</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">hub</span>
+<span class="font-label-md text-label-md">Stakeholders</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">folder_shared</span>
+<span class="font-label-md text-label-md">Library</span>
+</a>
+</nav>
+<div class="mt-auto flex flex-col gap-xs">
+<div class="p-md bg-primary-container rounded-lg mb-sm">
+<p class="font-label-md text-label-md text-on-primary-container mb-xs">QUOTA PROGRESS</p>
+<div class="h-1.5 w-full bg-on-primary-container/20 rounded-full overflow-hidden">
+<div class="h-full bg-secondary-container w-[72%]"></div>
+</div>
+</div>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Help</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-grow md:ml-[280px] h-screen overflow-y-auto custom-scrollbar bg-surface relative">
+<!-- TopNavBar (from Shared Components) -->
+<header class="flex justify-between items-center w-full px-margin-desktop h-16 bg-surface/70 backdrop-blur-xl sticky top-0 z-50 border-b border-outline-variant/30">
+<div class="flex items-center gap-xl">
+<div class="flex items-center gap-sm">
+<span class="font-headline-md text-headline-md font-bold text-primary">Globex Corp</span>
+<span class="bg-secondary-fixed text-on-secondary-fixed px-sm py-0.5 rounded-full font-label-sm text-label-sm">NYSE: GLBX</span>
+</div>
+<div class="hidden lg:flex gap-lg items-center">
+<a class="font-label-md text-label-md text-primary font-bold border-b-2 border-primary pb-1" href="#">Overview</a>
+<a class="font-label-md text-label-md text-on-surface-variant/80 font-medium hover:text-primary transition-colors" href="#">Contacts</a>
+<a class="font-label-md text-label-md text-on-surface-variant/80 font-medium hover:text-primary transition-colors" href="#">Opportunities</a>
+<a class="font-label-md text-label-md text-on-surface-variant/80 font-medium hover:text-primary transition-colors" href="#">Financials</a>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="material-symbols-outlined p-base text-on-surface-variant hover:text-primary transition-colors">notifications</button>
+<button class="material-symbols-outlined p-base text-on-surface-variant hover:text-primary transition-colors">settings</button>
+<div class="h-8 w-8 rounded-full bg-outline-variant overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJGFypbsVOGvXqf292CmntwxBfVcZtGLfSjMR9oQuoJXcOmI4uuS1OdQpoccDzmz0RcDifYWbbi946apnNLhWHGLOdGtoU4dIyXe_Bi-_9d_aqVI-80MCERObDYmQP2rEumGSVjSS_zWhyN9dGMXnuMIbM15wc9lZe0kXD4qBOAGP1eiS5arr7JwFVj4Pp66ckrDXz99wNNE56jrTwPeqKAoNFScwotv_9def7Oy0G7K6WR17KhtEJifogvTIGbvuyC_0Y-5zm0vE"/>
+</div>
+<button class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md text-label-md hover:opacity-80 active:scale-95 transition-all">New Report</button>
+</div>
+</header>
+<div class="p-margin-desktop space-y-xl">
+<!-- AI Executive Summary (Intelligence Layer) -->
+<section class="glass-intelligence p-xl rounded-xl relative overflow-hidden">
+<div class="absolute top-0 right-0 p-lg flex gap-sm">
+<span class="flex items-center gap-xs px-sm py-1 bg-secondary-container/20 text-secondary font-label-sm text-label-sm rounded-full">
+<span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                        AI SYNTHESIS
+                    </span>
+<span class="flex items-center gap-xs px-sm py-1 bg-green-100 text-green-700 font-label-sm text-label-sm rounded-full">
+                        HIGH INTENT
+                    </span>
+</div>
+<div class="max-w-4xl space-y-md">
+<h1 class="font-display-lg text-display-lg text-primary">Executive Summary</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+                        Globex Corp is currently entering a <span class="font-bold text-secondary">rapid expansion phase</span> following their Q3 acquisition of OmniSystems. Intelligence signals suggest a 45% increase in cloud infrastructure spending over the next 18 months. Key stakeholders are prioritizing <span class="font-bold text-primary">AI-driven supply chain resilience</span> and are currently vetting tier-1 technology partners.
+                    </p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-lg pt-md">
+<div class="p-md bg-white/40 rounded-lg border border-white/60">
+<p class="font-label-md text-label-md text-on-surface-variant/60 mb-xs">KEY PRIORITY</p>
+<p class="font-title-md text-title-md text-primary">Cloud Transformation</p>
+</div>
+<div class="p-md bg-white/40 rounded-lg border border-white/60">
+<p class="font-label-md text-label-md text-on-surface-variant/60 mb-xs">BUDGET STATUS</p>
+<p class="font-title-md text-title-md text-primary">Pre-Approved ($4M+)</p>
+</div>
+<div class="p-md bg-white/40 rounded-lg border border-white/60">
+<p class="font-label-md text-label-md text-on-surface-variant/60 mb-xs">NEXT BEST ACTION</p>
+<p class="font-title-md text-title-md text-primary">Engage CTO Office</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-lg">
+<!-- 1. Financial Performance (6 cols) -->
+<section class="col-span-12 lg:col-span-7 bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-lg flex flex-col gap-lg">
+<div class="flex justify-between items-end">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Financial Performance</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Annual Revenue &amp; Margin Trends (USD Billions)</p>
+</div>
+<div class="flex gap-sm">
+<button class="px-sm py-1 bg-surface-container-high rounded font-label-sm text-label-sm text-on-surface-variant">Annual</button>
+<button class="px-sm py-1 font-label-sm text-label-sm text-on-surface-variant">Quarterly</button>
+</div>
+</div>
+<div class="h-64 flex items-end gap-md pt-xl border-b border-outline-variant/20">
+<!-- Simulated Chart -->
+<div class="flex-grow flex items-end gap-md h-full">
+<div class="flex-1 bg-secondary-fixed group relative" style="height: 60%;">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-primary text-on-primary text-[10px] px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">12.4B</div>
+</div>
+<div class="flex-1 bg-secondary-fixed group relative" style="height: 65%;">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-primary text-on-primary text-[10px] px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">14.2B</div>
+</div>
+<div class="flex-1 bg-secondary group relative" style="height: 82%;">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-primary text-on-primary text-[10px] px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">18.9B</div>
+</div>
+<div class="flex-1 bg-secondary group relative" style="height: 95%;">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-primary text-on-primary text-[10px] px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">22.1B</div>
+</div>
+</div>
+<div class="w-12 h-full flex flex-col justify-between text-[10px] text-on-surface-variant/40 font-label-md">
+<span>25B</span>
+<span>15B</span>
+<span>5B</span>
+<span>0</span>
+</div>
+</div>
+<div class="flex justify-between font-label-md text-label-md text-on-surface-variant/60 px-md">
+<span>2021</span>
+<span>2022</span>
+<span>2023</span>
+<span>2024 (Proj)</span>
+</div>
+</section>
+<!-- 4. Key Growth Indicators (5 cols) -->
+<section class="col-span-12 lg:col-span-5 space-y-lg">
+<div class="bg-primary text-on-primary p-lg rounded-xl flex flex-col gap-md">
+<div class="flex justify-between items-center">
+<h3 class="font-title-md text-title-md">Growth Indicators</h3>
+<span class="material-symbols-outlined text-secondary-fixed">trending_up</span>
+</div>
+<div class="space-y-sm">
+<div class="flex justify-between items-center py-sm border-b border-on-primary/10">
+<span class="font-body-md text-body-md">Global Headcount</span>
+<span class="font-label-md text-label-md">+12.4% YoY</span>
+</div>
+<div class="flex justify-between items-center py-sm border-b border-on-primary/10">
+<span class="font-body-md text-body-md">R&amp;D Investment</span>
+<span class="font-label-md text-label-md">$1.2B (↑ 8%)</span>
+</div>
+<div class="flex justify-between items-center py-sm">
+<span class="font-body-md text-body-md">Market Share</span>
+<span class="font-label-md text-label-md">18.2% (Leader)</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-md">
+<div class="bg-surface-container-high p-md rounded-xl border border-outline-variant/30">
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-xs">STOCK PRICE</p>
+<p class="font-headline-md text-headline-md text-primary">$142.50</p>
+<p class="font-label-md text-label-md text-green-600">▲ 2.4%</p>
+</div>
+<div class="bg-surface-container-high p-md rounded-xl border border-outline-variant/30">
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-xs">PE RATIO</p>
+<p class="font-headline-md text-headline-md text-primary">24.8x</p>
+<p class="font-label-md text-label-md text-on-surface-variant/60">Industry Avg: 22x</p>
+</div>
+</div>
+</section>
+<!-- 2. Recent News Analysis (8 cols) -->
+<section class="col-span-12 lg:col-span-8 bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-lg flex flex-col gap-lg">
+<div class="flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md text-on-surface">Intelligence Feed</h3>
+<button class="text-secondary font-label-md text-label-md flex items-center gap-xs">View All <span class="material-symbols-outlined text-[16px]">arrow_forward</span></button>
+</div>
+<div class="space-y-md">
+<div class="flex gap-md p-md hover:bg-surface-container-low transition-colors rounded-lg border border-transparent hover:border-outline-variant/20">
+<div class="flex-shrink-0 w-12 h-12 bg-surface-container-high rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary">newspaper</span>
+</div>
+<div class="flex-grow space-y-xs">
+<div class="flex justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant">REUTERS • 4h ago</span>
+<span class="px-sm py-0.5 bg-green-100 text-green-700 font-label-sm text-label-sm rounded-full">POSITIVE</span>
+</div>
+<h4 class="font-title-md text-title-md text-on-surface">Globex Unveils Next-Gen AI Integration for Enterprise Logistics</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">The new platform aims to reduce shipping latency by 30% using autonomous routing algorithms...</p>
+</div>
+</div>
+<div class="flex gap-md p-md hover:bg-surface-container-low transition-colors rounded-lg border border-transparent hover:border-outline-variant/20">
+<div class="flex-shrink-0 w-12 h-12 bg-surface-container-high rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary">campaign</span>
+</div>
+<div class="flex-grow space-y-xs">
+<div class="flex justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant">PRESS RELEASE • 1d ago</span>
+<span class="px-sm py-0.5 bg-surface-variant text-on-surface-variant font-label-sm text-label-sm rounded-full">NEUTRAL</span>
+</div>
+<h4 class="font-title-md text-title-md text-on-surface">Strategic Leadership Shift: Martha Thorne Appointed as CTO</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Thorne brings two decades of experience from Silicon Valley cloud giants to spearhead 'Vision 2030'...</p>
+</div>
+</div>
+<div class="flex gap-md p-md hover:bg-surface-container-low transition-colors rounded-lg border border-transparent hover:border-outline-variant/20">
+<div class="flex-shrink-0 w-12 h-12 bg-surface-container-high rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary">warning</span>
+</div>
+<div class="flex-grow space-y-xs">
+<div class="flex justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant">MARKET WATCH • 2d ago</span>
+<span class="px-sm py-0.5 bg-error-container text-on-error-container font-label-sm text-label-sm rounded-full">CAUTION</span>
+</div>
+<h4 class="font-title-md text-title-md text-on-surface">European Supply Chain Regulations May Impact H2 Margins</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Analysts warn of potential compliance costs reaching $200M in the upcoming fiscal cycle...</p>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. Tech Stack Insights (4 cols) -->
+<section class="col-span-12 lg:col-span-4 bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-lg flex flex-col gap-lg">
+<h3 class="font-headline-md text-headline-md text-on-surface">Tech Landscape</h3>
+<div class="space-y-md">
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-base">CLOUD PROVIDER</p>
+<div class="flex items-center gap-md p-sm bg-surface-container-low rounded-lg border border-outline-variant/20">
+<div class="w-8 h-8 rounded bg-white flex items-center justify-center font-bold text-blue-600">AWS</div>
+<span class="font-body-md text-body-md">Amazon Web Services</span>
+<span class="ml-auto material-symbols-outlined text-green-500">check_circle</span>
+</div>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-base">ERP SYSTEM</p>
+<div class="flex items-center gap-md p-sm bg-surface-container-low rounded-lg border border-outline-variant/20">
+<div class="w-8 h-8 rounded bg-white flex items-center justify-center font-bold text-red-600">SAP</div>
+<span class="font-body-md text-body-md">SAP S/4HANA</span>
+<span class="ml-auto material-symbols-outlined text-on-surface-variant/40">info</span>
+</div>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-base">AI INFRASTRUCTURE</p>
+<div class="flex items-center gap-md p-sm bg-secondary-container/10 border border-secondary/20 rounded-lg">
+<div class="w-8 h-8 rounded bg-secondary flex items-center justify-center text-on-secondary">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+</div>
+<span class="font-body-md text-body-md font-medium">NVIDIA DGX Cluster</span>
+<span class="ml-auto font-label-sm text-label-sm text-secondary">EMERGING</span>
+</div>
+</div>
+</div>
+<div class="mt-auto pt-lg border-t border-outline-variant/20">
+<p class="font-label-md text-label-md text-on-surface-variant/60 mb-sm">TECHNOLOGY SPEND ESTIMATE</p>
+<div class="flex items-end gap-xs">
+<span class="font-display-lg text-[28px] text-primary">$420M</span>
+<span class="font-label-md text-label-md text-on-surface-variant mb-base">/ Year</span>
+</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Footer Info -->
+<footer class="px-margin-desktop py-lg text-center">
+<p class="font-label-md text-label-md text-on-surface-variant/40">Data refreshed: Today at 08:42 AM • Sources: Bloomberg, Reuters, LinkedIn, BuiltWith</p>
+</footer>
+</main>
+<!-- Contextual FAB (Only on specific intelligence actions) -->
+<button class="fixed bottom-lg right-lg w-14 h-14 bg-secondary text-on-secondary rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
+<span class="material-symbols-outlined">chat_bubble</span>
+</button>
+<script>
+        // Simple micro-interaction for the chart bars
+        document.querySelectorAll('.flex-1.bg-secondary, .flex-1.bg-secondary-fixed').forEach(bar => {
+            bar.addEventListener('mouseenter', () => {
+                bar.style.filter = 'brightness(1.1)';
+            });
+            bar.addEventListener('mouseleave', () => {
+                bar.style.filter = 'brightness(1)';
+            });
+        });
+    </script>
+</body></html>
