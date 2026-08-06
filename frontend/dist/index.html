@@ -232,7 +232,10 @@ async function doSignUp(e) {
   btn.textContent = 'Creating account…'; btn.disabled = true;
   const { data, error } = await sb.auth.signUp({
     email, password,
-    options: { data: { display_name: displayName, company: company || null } },
+    options: {
+      data: { display_name: displayName, company: company || null },
+      emailRedirectTo: window.location.origin + '/',
+    },
   });
   if (error) {
     showAuthMsg(authError(error));
