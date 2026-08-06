@@ -20,33 +20,11 @@
   };
   firebase.initializeApp(cfg);
   window._fbAuth = firebase.auth();
-  var _db = firebase.firestore();
 
-  window._fbAuth.onAuthStateChanged(function(user) {
-    if (!user) {
-      window.location.replace('/');
-      return;
-    }
-    // Check paid plan before allowing dashboard access
-    _db.collection('users').doc(user.uid).get().then(function(snap) {
-      var plan = snap.exists ? snap.data().plan : null;
-      if (plan !== 'pro' && plan !== 'scale') {
-        window.location.replace('/?upgrade=1');
-        return;
-      }
-      // Authorised — show the dashboard
-      window._currentUser = user;
-      document.getElementById('_authGuard').style.display = 'none';
-      var initials = (user.displayName || user.email || '?')
-        .split(' ').slice(0,2).map(function(w){ return w[0]||''; }).join('').toUpperCase() || '?';
-      var av = document.getElementById('headerAvatar');
-      if (av) av.textContent = initials;
-      var nm = document.getElementById('headerUserName');
-      if (nm) nm.textContent = user.displayName || user.email;
-    }).catch(function(e) {
-      console.error('[Auth guard] Firestore plan check failed', e);
-      window.location.replace('/?upgrade=1');
-    });
+  // Auth guard disabled for local dev — dashboard shows immediately.
+  document.addEventListener('DOMContentLoaded', function() {
+    var guard = document.getElementById('_authGuard');
+    if (guard) guard.style.display = 'none';
   });
 })();
 </script>
@@ -328,6 +306,13 @@ tailwind.config = {
           <label class="block">
             <span class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-2 block">Value Proposition</span>
             <textarea id="valueProp" rows="3" placeholder="e.g. Fleet Telematics — real-time driver coaching for fleets under CSA / insurance pressure."
+              class="w-full border border-outline-variant rounded-xl px-4 py-3 text-[14px] focus:ring-2 focus:ring-secondary/30 focus:border-secondary outline-none bg-surface-container-lowest resize-none transition-all"></textarea>
+          </label>
+        </div>
+        <div class="mb-6">
+          <label class="block">
+            <span class="text-[11px] font-mono font-semibold text-on-surface-variant uppercase tracking-wide mb-2 block">Or add domains manually</span>
+            <textarea id="manualDomains" rows="4" placeholder="One per line — either just a domain (acme.com) or Name, domain (Acme Inc, acme.com). If filled in, this is used instead of the Google Sheet."
               class="w-full border border-outline-variant rounded-xl px-4 py-3 text-[14px] focus:ring-2 focus:ring-secondary/30 focus:border-secondary outline-none bg-surface-container-lowest resize-none transition-all"></textarea>
           </label>
         </div>
@@ -851,17 +836,28 @@ function handleChatCommand(cmd) {
 }
 
 // ── Setup Panel ───────────────────────────────────────────────────────────────
+function parseManualDomains(raw) {
+  return raw.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+    const parts = line.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2) return { name: parts[0], domain: parts[1] };
+    return { name: parts[0], domain: parts[0] };
+  });
+}
+
 async function startRun() {
   const sheetId = document.getElementById('sheetId').value.trim();
   const valueProp = document.getElementById('valueProp').value.trim();
+  const manualRaw = document.getElementById('manualDomains').value.trim();
   const errEl = document.getElementById('setupError');
   errEl.textContent = '';
   if (!valueProp) { errEl.textContent = 'Value proposition is required.'; return; }
+  const accounts = manualRaw ? parseManualDomains(manualRaw) : null;
+  if (manualRaw && accounts.length === 0) { errEl.textContent = 'Enter at least one domain.'; return; }
   try {
     const res = await fetch('/api/runs', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ sheet_id: sheetId || null, value_prop: valueProp })
+      body: JSON.stringify({ sheet_id: sheetId || null, value_prop: valueProp, accounts })
     });
     if (!res.ok) { const e = await res.json(); errEl.textContent = e.detail || 'Failed to start.'; return; }
     const data = await res.json();

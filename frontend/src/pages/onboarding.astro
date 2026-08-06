@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Set up your workspace | InsightEngine</title>
+<script is:inline src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script is:inline src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+<script is:inline id="tailwind-config">
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: '#0f7c41',
+        'brand-dark': '#0c6335',
+        accent: '#245fc1',
+        surface: '#f5f6ff',
+        'on-surface': '#171717',
+        'on-surface-var': '#393939',
+        'on-surface-mute': '#6F6F6F',
+        'outline-var': '#EDEDED',
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      }
+    }
+  }
+}
+</script>
+<style is:global>
+  body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  .step-dot { transition: background 0.2s, color 0.2s, border-color 0.2s; }
+  .field-input {
+    width: 100%; border: 1px solid #EDEDED; border-radius: 12px; padding: 10px 14px;
+    font-size: 14px; background: #fff; transition: all 0.15s;
+  }
+  .field-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(36,95,193,0.3); border-color: #245fc1; }
+  .field-label { font-size: 12px; font-weight: 600; color: #393939; margin-bottom: 6px; display: block; }
+  .field-hint { font-size: 12px; color: #6F6F6F; margin-top: 4px; }
+  .onb-step { display: none; }
+  .onb-step.active { display: block; }
+  .tone-chip { transition: all 0.15s; cursor: pointer; }
+  .tone-chip.selected { background: #0f7c41; color: #fff; border-color: #0f7c41; }
+</style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex items-center justify-center p-6">
+
+<div class="w-full max-w-2xl">
+
+  <div class="flex items-center justify-center gap-2 mb-8">
+    <div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-white shrink-0">
+      <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'FILL' 1;">analytics</span>
+    </div>
+    <span class="text-[18px] font-black tracking-tight"><span class="text-brand">Insight</span><span class="text-on-surface">Engine</span></span>
+  </div>
+
+  <!-- Step indicator -->
+  <div class="flex items-center justify-center gap-3 mb-8">
+    <div class="flex items-center gap-2">
+      <span id="dot-1" class="step-dot w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold border-2 border-brand bg-brand text-white">1</span>
+      <span class="text-[12px] font-mono font-semibold text-on-surface hidden sm:inline">About You</span>
+    </div>
+    <span class="w-8 h-px bg-outline-var"></span>
+    <div class="flex items-center gap-2">
+      <span id="dot-2" class="step-dot w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold border-2 border-outline-var text-on-surface-mute">2</span>
+      <span class="text-[12px] font-mono font-semibold text-on-surface-mute hidden sm:inline">Your Market</span>
+    </div>
+    <span class="w-8 h-px bg-outline-var"></span>
+    <div class="flex items-center gap-2">
+      <span id="dot-3" class="step-dot w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold border-2 border-outline-var text-on-surface-mute">3</span>
+      <span class="text-[12px] font-mono font-semibold text-on-surface-mute hidden sm:inline">Targeting</span>
+    </div>
+  </div>
+
+  <div class="bg-white border border-outline-var rounded-[24px] p-8 sm:p-10">
+
+    <!-- STEP 1 — About You -->
+    <div id="step-1" class="onb-step active space-y-5">
+      <div>
+        <h1 class="text-[24px] font-bold text-on-surface">Tell us about you</h1>
+        <p class="text-[13px] text-on-surface-var mt-1">This helps us tailor InsightEngine to how you sell.</p>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-5">
+        <label class="block">
+          <span class="field-label">Your Role</span>
+          <input id="f_role" type="text" placeholder="e.g. Head of Sales, Founder, BDR" class="field-input"/>
+        </label>
+        <label class="block">
+          <span class="field-label">Company</span>
+          <input id="f_company" type="text" placeholder="Your company name" class="field-input"/>
+        </label>
+      </div>
+      <label class="block">
+        <span class="field-label">How did you hear about us?</span>
+        <select id="f_referral" class="field-input">
+          <option value="">Select one…</option>
+          <option>Search engine</option>
+          <option>Twitter / X</option>
+          <option>LinkedIn</option>
+          <option>Referral from a friend or colleague</option>
+          <option>Product Hunt</option>
+          <option>Podcast / YouTube</option>
+          <option>Other</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- STEP 2 — Your Market -->
+    <div id="step-2" class="onb-step space-y-5">
+      <div>
+        <h1 class="text-[24px] font-bold text-on-surface">Your market</h1>
+        <p class="text-[13px] text-on-surface-var mt-1">Who do you sell to, and what does a good-fit account look like?</p>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-5">
+        <label class="block">
+          <span class="field-label">Industry</span>
+          <input id="f_industry" type="text" placeholder="e.g. Fleet & Logistics, Fintech, Healthcare" class="field-input"/>
+        </label>
+        <label class="block">
+          <span class="field-label">Target Market</span>
+          <input id="f_target_market" type="text" placeholder="e.g. Mid-market US trucking fleets" class="field-input"/>
+        </label>
+      </div>
+      <label class="block">
+        <span class="field-label">Audience</span>
+        <input id="f_audience" type="text" placeholder="e.g. Operations & safety leaders at 50-500 truck fleets" class="field-input"/>
+      </label>
+      <label class="block">
+        <span class="field-label">Ideal Customer Profile (ICP)</span>
+        <textarea id="f_icp" rows="3" placeholder="Describe your best-fit customer — size, signals, pain points…" class="field-input resize-none"></textarea>
+        <p class="field-hint">Used as the default starting point for the Value Proposition on new runs.</p>
+      </label>
+    </div>
+
+    <!-- STEP 3 — Targeting & Scoring -->
+    <div id="step-3" class="onb-step space-y-5">
+      <div>
+        <h1 class="text-[24px] font-bold text-on-surface">Targeting &amp; scoring</h1>
+        <p class="text-[13px] text-on-surface-var mt-1">How the agents should score fit and write for your team.</p>
+      </div>
+      <label class="block">
+        <span class="field-label">Target Roles</span>
+        <input id="f_target_roles" type="text" placeholder="e.g. VP Operations, Safety Director, Fleet Manager" class="field-input"/>
+        <p class="field-hint">The decision-maker titles you sell to.</p>
+      </label>
+      <label class="block">
+        <span class="field-label">Minimum score to consider an account "good"</span>
+        <div class="flex items-center gap-4">
+          <input id="f_good_score" type="range" min="1" max="10" value="7" class="flex-1"/>
+          <span id="f_good_score_label" class="w-12 text-center text-[16px] font-black text-brand">7/10</span>
+        </div>
+        <p class="field-hint">Accounts scoring below this are dropped instead of shipped to Pipedrive.</p>
+      </label>
+      <label class="block">
+        <span class="field-label">Tone of voice</span>
+        <div class="flex flex-wrap gap-2" id="toneChips">
+          <span class="tone-chip px-4 py-2 rounded-full border border-outline-var text-[13px] font-semibold" data-tone="professional">Professional</span>
+          <span class="tone-chip px-4 py-2 rounded-full border border-outline-var text-[13px] font-semibold" data-tone="direct">Direct</span>
+          <span class="tone-chip px-4 py-2 rounded-full border border-outline-var text-[13px] font-semibold" data-tone="casual">Casual</span>
+          <span class="tone-chip px-4 py-2 rounded-full border border-outline-var text-[13px] font-semibold" data-tone="consultative">Consultative</span>
+          <span class="tone-chip px-4 py-2 rounded-full border border-outline-var text-[13px] font-semibold" data-tone="enthusiastic">Enthusiastic</span>
+        </div>
+        <p class="field-hint">Shapes the tone of generated outreach angles and Pipedrive briefings.</p>
+      </label>
+    </div>
+
+    <p id="onbError" class="text-red-600 text-[13px] font-medium mt-2"></p>
+
+    <!-- Actions -->
+    <div class="flex items-center justify-between pt-8 mt-6 border-t border-outline-var">
+      <button id="backBtn" onclick="prevStep()" class="hidden px-5 py-2.5 text-[13px] font-semibold text-on-surface-var hover:text-on-surface transition-colors">Back</button>
+      <div class="ml-auto flex items-center gap-3">
+        <button id="skipBtn" onclick="finishOnboarding(true)" class="px-5 py-2.5 text-[13px] font-semibold text-on-surface-mute hover:text-on-surface transition-colors">Skip for now</button>
+        <button id="nextBtn" onclick="nextStep()" class="flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-xl text-[13px] font-semibold shadow-sm hover:bg-brand-dark transition-colors">
+          Continue <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script is:inline>
+const SUPABASE_URL = 'https://nuzomybeezzxykarlsei.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_GjM2jbO95xKcFnQ-MwKABA_YIpS-7eS';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentStep = 1;
+let selectedTone = 'professional';
+
+(async function() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) window.location.href = '/';
+})();
+
+document.getElementById('f_good_score').addEventListener('input', (e) => {
+  document.getElementById('f_good_score_label').textContent = e.target.value + '/10';
+});
+
+document.querySelectorAll('.tone-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.tone-chip').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+    selectedTone = chip.dataset.tone;
+  });
+});
+document.querySelector('.tone-chip[data-tone="professional"]').classList.add('selected');
+
+function showStep(n) {
+  document.querySelectorAll('.onb-step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  for (let i = 1; i <= 3; i++) {
+    const dot = document.getElementById('dot-' + i);
+    if (i <= n) {
+      dot.classList.add('bg-brand', 'border-brand', 'text-white');
+      dot.classList.remove('border-outline-var', 'text-on-surface-mute');
+    } else {
+      dot.classList.remove('bg-brand', 'border-brand', 'text-white');
+      dot.classList.add('border-outline-var', 'text-on-surface-mute');
+    }
+  }
+  document.getElementById('backBtn').classList.toggle('hidden', n === 1);
+  document.getElementById('nextBtn').innerHTML = n === 3
+    ? 'Finish <span class="material-symbols-outlined text-[18px]">check</span>'
+    : 'Continue <span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
+  document.getElementById('onbError').textContent = '';
+}
+
+function nextStep() {
+  if (currentStep < 3) {
+    currentStep++;
+    showStep(currentStep);
+  } else {
+    finishOnboarding(false);
+  }
+}
+
+function prevStep() {
+  if (currentStep > 1) {
+    currentStep--;
+    showStep(currentStep);
+  }
+}
+
+async function finishOnboarding(skipped) {
+  const errEl = document.getElementById('onbError');
+  const nextBtn = document.getElementById('nextBtn');
+  nextBtn.disabled = true;
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = '/'; return; }
+
+  const body = {
+    role: document.getElementById('f_role').value.trim() || null,
+    company: document.getElementById('f_company').value.trim() || null,
+    referral_source: document.getElementById('f_referral').value || null,
+    industry: document.getElementById('f_industry').value.trim() || null,
+    target_market: document.getElementById('f_target_market').value.trim() || null,
+    audience: document.getElementById('f_audience').value.trim() || null,
+    icp: document.getElementById('f_icp').value.trim() || null,
+    target_roles: document.getElementById('f_target_roles').value.trim() || null,
+    good_score: parseInt(document.getElementById('f_good_score').value, 10) || 7,
+    tone: selectedTone,
+  };
+
+  try {
+    const res = await fetch('/api/profile', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      errEl.textContent = e.detail || 'Could not save your profile. Please try again.';
+      nextBtn.disabled = false;
+      return;
+    }
+    window.location.href = '/dashboard';
+  } catch (e) {
+    errEl.textContent = 'Network error: ' + e.message;
+    nextBtn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>

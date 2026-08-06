@@ -19,6 +19,7 @@ different space, infer the equivalent industry-specific triggers.
 
 For each angle return: trigger, pain, outcome_kpi, proof_idea, pitch.
 Pitch is a single sentence a BDR can paste directly into a cold message.
+Write every pitch in a {tone} tone.
 
 Return ONLY valid JSON:
 
@@ -56,11 +57,13 @@ async def run(
     account: dict,
     value_prop: str,
     hypothesis: dict,
+    tone: str = "professional",
 ) -> dict:
     system = _SYSTEM.format(
         name=account.get("name", ""),
         domain=account.get("domain") or "unknown",
         value_prop=value_prop,
+        tone=tone,
     )
     user = (
         f"VALUE PROPOSITION:\n{value_prop}\n\n"

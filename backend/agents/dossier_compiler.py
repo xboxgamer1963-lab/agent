@@ -7,7 +7,8 @@ from integrations.gemini import call_gemini
 
 _SYSTEM = """You are compiling a Pipedrive briefing for a BDR on {name}.
 
-Write a Pipedrive note ~300-400 words, plain text, no markdown. Use this
+Write in a {tone} tone throughout. Write a Pipedrive note ~300-400 words,
+plain text, no markdown. Use this
 exact section order and headings (UPPERCASE headings, blank line between
 sections):
 
@@ -58,10 +59,11 @@ async def run(
     evaluation: dict,
     search_commands: dict,
     outreach_angles: dict | None = None,
+    tone: str = "professional",
 ) -> dict:
     name = account.get("name", "")
     score = evaluation.get("score", 0)
-    system = _SYSTEM.format(name=name, score=score)
+    system = _SYSTEM.format(name=name, score=score, tone=tone)
     user = (
         f"Company: {name}\n"
         f"Domain: {account.get('domain') or 'unknown'}\n\n"

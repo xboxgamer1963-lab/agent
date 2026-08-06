@@ -20,7 +20,11 @@ from integrations import pipedrive
 
 
 async def run_pipeline(
-    run_id: int, accounts: list[dict], value_prop: str
+    run_id: int,
+    accounts: list[dict],
+    value_prop: str,
+    threshold: int = 7,
+    tone: str = "professional",
 ) -> None:
     try:
         await db.update_run_status(run_id, "running")
@@ -28,7 +32,7 @@ async def run_pipeline(
         for start in range(0, len(accounts), batch_size):
             batch = accounts[start : start + batch_size]
             await asyncio.gather(
-                *(process_account(run_id, a, value_prop) for a in batch)
+                *(process_account(run_id, a, value_prop, threshold, tone) for a in batch)
             )
             await db.update_run_counts(run_id)
         await db.update_run_counts(run_id)
@@ -47,7 +51,11 @@ async def _scout(coro, account_id, step, label):
 
 
 async def process_account(
-    run_id: int, account: dict, value_prop: str
+    run_id: int,
+    account: dict,
+    value_prop: str,
+    threshold: int = 7,
+    tone: str = "professional",
 ) -> None:
     account_id = account["id"]
     try:
@@ -87,7 +95,7 @@ async def process_account(
 
         # === VERDICT (score) — pass 1 ===
         await db.add_log(account_id, "scorer", "Verdict · scoring fit")
-        eval_1 = await scorer.run(account, value_prop, hypothesis_1, signals)
+        eval_1 = await scorer.run(account, value_prop, hypothesis_1, signals, threshold)
         await db.update_account(account_id, eval_1=eval_1)
         await db.add_log(account_id, "scorer",
                          f"Verdict · score {eval_1.get('score')}/10")
@@ -96,7 +104,7 @@ async def process_account(
             await _finalise(
                 account_id, account, value_prop,
                 hypothesis_1, signals["news_signals"],
-                signals["linkedin_signals"], eval_1,
+                signals["linkedin_signals"], eval_1, tone,
             )
             return
 
@@ -118,7 +126,7 @@ async def process_account(
 
         await db.add_log(account_id, "scorer_pass_2",
                          "Verdict (retry) · scoring new angle")
-        eval_2 = await scorer.run(account, value_prop, hypothesis_2, signals)
+        eval_2 = await scorer.run(account, value_prop, hypothesis_2, signals, threshold)
         await db.update_account(account_id, eval_2=eval_2)
         await db.add_log(account_id, "scorer_pass_2",
                          f"Verdict (retry) · score {eval_2.get('score')}/10")
@@ -127,7 +135,7 @@ async def process_account(
             await _finalise(
                 account_id, account, value_prop,
                 hypothesis_2, signals["news_signals"],
-                signals["linkedin_signals"], eval_2,
+                signals["linkedin_signals"], eval_2, tone,
             )
             return
 
@@ -158,9 +166,10 @@ async def _finalise(
     news: dict,
     linkedin: dict,
     evaluation: dict,
+    tone: str = "professional",
 ) -> None:
     await db.add_log(account_id, "outreach_angles", "Pitch · generating 12 angles")
-    angles = await outreach_angles.run(account, value_prop, hypothesis)
+    angles = await outreach_angles.run(account, value_prop, hypothesis, tone)
     await db.update_account(account_id, outreach_angles=angles)
     await db.add_log(account_id, "outreach_angles",
                      f"Pitch · {len(angles.get('angles', []))} angles")
@@ -173,7 +182,7 @@ async def _finalise(
     await db.add_log(account_id, "dossier", "Scribe · writing briefing")
     dossier = await dossier_compiler.run(
         account, hypothesis, news, linkedin, evaluation, search_commands,
-        outreach_angles=angles,
+        outreach_angles=angles, tone=tone,
     )
     await db.update_account(account_id, dossier=dossier)
     await db.add_log(account_id, "dossier", "Scribe · briefing ready")

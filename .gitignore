@@ -1,6 +1,13 @@
 .env
 service-account.json
+gen-lang-client-*.json
 .venv/
 __pycache__/
 *.pyc
 enrichment.db
+frontend/node_modules/
+frontend/dist/
+frontend/.astro/
+.claude/
+uvicorn_out.log
+uvicorn_err.log

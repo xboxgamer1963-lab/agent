@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 
-from config import settings
 from integrations.gemini import call_gemini
 
 
@@ -50,9 +49,9 @@ async def run(
     value_prop: str,
     hypothesis: dict,
     signals: dict,
+    threshold: int = 7,
 ) -> dict:
     """Score fit. Small focused call."""
-    threshold = settings.relevance_threshold
     system = _SYSTEM.format(threshold=threshold)
     user = (
         f"Company: {account.get('name')}\n"

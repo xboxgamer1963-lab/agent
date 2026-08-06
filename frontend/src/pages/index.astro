@@ -7,18 +7,15 @@
 <meta name="description" content="Eight specialist AI agents that research every account, score fit 1–10, and push qualified leads to Pipedrive with a full dossier — automatically."/>
 
 <!-- Paddle Billing v2 -->
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
-<!-- Firebase v10 compat -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
+<script is:inline src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<!-- Supabase Auth -->
+<script is:inline src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
-<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script is:inline src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
 
-<script>
+<script is:inline>
 tailwind.config = {
   theme: {
     extend: {
@@ -41,7 +38,7 @@ tailwind.config = {
 }
 </script>
 
-<style>
+<style is:global>
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
@@ -902,7 +899,7 @@ body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; ov
 <!-- ═══════════════════════
      JAVASCRIPT
      ═══════════════════════ -->
-<script>
+<script is:inline>
 // ── Paddle Config ─────────────────────────────────────────────────────────────
 // 1. Create products + prices in Paddle dashboard (Catalog → Products)
 // 2. Copy your client-side token: Paddle dashboard → Developer Tools → Authentication
@@ -922,19 +919,7 @@ try {
     token: paddleConfig.token,
     eventCallback: function(ev) {
       if (ev.name !== 'checkout.completed') return;
-      const user = auth ? auth.currentUser : null;
-      const plan = _pendingPlan || 'pro';
-      if (user && db) {
-        db.collection('users').doc(user.uid).update({
-          plan: plan,
-          paddleCustomerId: (ev.data && ev.data.customer && ev.data.customer.id) || null,
-          planActivatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).finally(function() {
-          window.location.href = '/dashboard';
-        });
-      } else {
-        window.location.href = '/dashboard';
-      }
+      window.location.href = '/dashboard';
     }
   });
 } catch(e) {
@@ -958,7 +943,7 @@ function _launchPaddle(user) {
     Paddle.Checkout.open({
       items: [{ priceId, quantity: 1 }],
       customer: { email: user.email },
-      customData: { userId: user.uid, plan: _pendingPlan }
+      customData: { userId: user.id, plan: _pendingPlan }
     });
   } catch(e) {
     console.error('[Paddle] Checkout error', e);
@@ -975,76 +960,66 @@ function _afterAuth(user) {
   }
 }
 
-// ── Firebase Config ────────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey:            "AIzaSyCKANkXQf5km5Us-0jSjT0L04OrFfyDkvc",
-  authDomain:        "business-in-a-box-e58fc.firebaseapp.com",
-  projectId:         "business-in-a-box-e58fc",
-  storageBucket:     "business-in-a-box-e58fc.firebasestorage.app",
-  messagingSenderId: "888886932660",
-  appId:             "1:888886932660:web:cb8c43e848858ed48853e1",
-  measurementId:     "G-TW0900Y7SD"
-};
+// ── Supabase Config ────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://nuzomybeezzxykarlsei.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_GjM2jbO95xKcFnQ-MwKABA_YIpS-7eS';
+window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-firebase.initializeApp(firebaseConfig);
-const auth      = firebase.auth();
-const db        = firebase.firestore();
-const analytics = firebase.analytics();
-
-// ── Auth State Listener ────────────────────────────────────────────────────────
-if (auth) {
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      // If we were redirected here because of a missing paid plan, don't loop back.
-      if (new URLSearchParams(location.search).get('upgrade') === '1') {
-        // Stay on landing — show the logged-in nav so they can sign out or upgrade.
-        document.getElementById('navAuthOut').classList.add('hidden');
-        const navIn = document.getElementById('navAuthIn');
-        navIn.classList.remove('hidden');
-        navIn.classList.add('flex');
-        const av = document.getElementById('navAvatar');
-        if (av) {
-          const ini = (user.displayName || user.email || '?')
-            .split(' ').slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
-          av.textContent = ini;
-        }
-        const nm = document.getElementById('userMenuName');
-        if (nm) nm.textContent = user.displayName || user.email;
-        return;
+// ── Auth State ─────────────────────────────────────────────────────────────────
+(async function() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    // If we were redirected here because of a missing paid plan, don't loop back.
+    if (new URLSearchParams(location.search).get('upgrade') === '1') {
+      // Stay on landing — show the logged-in nav so they can sign out or upgrade.
+      document.getElementById('navAuthOut').classList.add('hidden');
+      const navIn = document.getElementById('navAuthIn');
+      navIn.classList.remove('hidden');
+      navIn.classList.add('flex');
+      const av = document.getElementById('navAvatar');
+      if (av) {
+        const ini = (session.user.email || '?').slice(0, 2).toUpperCase();
+        av.textContent = ini;
       }
-      // Already logged in — go straight to the dashboard
-      window.location.href = '/dashboard';
+      const nm = document.getElementById('userMenuName');
+      if (nm) nm.textContent = session.user.email;
       return;
     }
-    // Not logged in — show the normal landing UI
-    document.getElementById('navAuthOut').classList.remove('hidden');
-    document.getElementById('navAuthIn').classList.add('hidden');
-  });
+    // Already logged in — go straight to the dashboard (it decides whether
+    // onboarding still needs to happen first).
+    window.location.href = '/dashboard';
+    return;
+  }
+  // Not logged in — show the normal landing UI
+  document.getElementById('navAuthOut').classList.remove('hidden');
+  document.getElementById('navAuthIn').classList.add('hidden');
+})();
+
+function authError(error) {
+  console.error('[Supabase auth error]', error);
+  return error?.message || 'Something went wrong. Please try again.';
 }
 
 // ── Sign In ────────────────────────────────────────────────────────────────────
 async function doSignIn(e) {
   e.preventDefault();
-  if (!auth) { showAuthMsg('Firebase is not configured yet. Add your config above.', 'error'); return; }
   const btn = document.getElementById('signinBtn');
   btn.textContent = 'Signing in…'; btn.disabled = true;
-  try {
-    const cred = await auth.signInWithEmailAndPassword(
-      document.getElementById('siEmail').value.trim(),
-      document.getElementById('siPassword').value
-    );
-    _afterAuth(cred.user);
-  } catch(err) {
-    console.error('[Sign in error]', err);
-    showAuthMsg(authError(err.code));
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: document.getElementById('siEmail').value.trim(),
+    password: document.getElementById('siPassword').value,
+  });
+  if (error) {
+    showAuthMsg(authError(error));
     btn.textContent = 'Sign In'; btn.disabled = false;
+    return;
   }
+  _afterAuth(data.user);
 }
 
 // ── Sign Up ────────────────────────────────────────────────────────────────────
 async function doSignUp(e) {
   e.preventDefault();
-  if (!auth) { showAuthMsg('Firebase is not configured yet. Add your config above.', 'error'); return; }
   const btn         = document.getElementById('signupBtn');
   const firstName   = document.getElementById('suFirst').value.trim();
   const lastName    = document.getElementById('suLast').value.trim();
@@ -1053,57 +1028,36 @@ async function doSignUp(e) {
   const password    = document.getElementById('suPassword').value;
   const displayName = `${firstName} ${lastName}`.trim();
   btn.textContent = 'Creating account…'; btn.disabled = true;
-  try {
-    const cred = await auth.createUserWithEmailAndPassword(email, password);
-    await cred.user.updateProfile({ displayName });
-    if (db) {
-      await db.collection('users').doc(cred.user.uid).set({
-        email,
-        displayName,
-        company:          company || null,
-        plan:             'free',
-        enrichmentsUsed:  0,
-        enrichmentsLimit: 25,
-        createdAt:        firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-    _afterAuth(cred.user);
-  } catch(err) {
-    console.error('[Sign up error]', err);
-    showAuthMsg(authError(err.code));
+  const { data, error } = await sb.auth.signUp({
+    email, password,
+    options: { data: { display_name: displayName, company: company || null } },
+  });
+  if (error) {
+    showAuthMsg(authError(error));
     btn.textContent = 'Create Free Account'; btn.disabled = false;
+    return;
   }
+  if (!data.session) {
+    showAuthMsg('Check your email to confirm your account, then sign in.', 'success');
+    btn.textContent = 'Create Free Account'; btn.disabled = false;
+    return;
+  }
+  _afterAuth(data.user);
 }
 
 // ── Google Sign-In ─────────────────────────────────────────────────────────────
+// Requires the Google provider to be enabled under Supabase → Authentication → Providers.
 async function doGoogleSignIn() {
-  if (!auth) { showAuthMsg('Firebase is not configured yet.', 'error'); return; }
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    const result   = await auth.signInWithPopup(provider);
-    const isNew    = result.additionalUserInfo?.isNewUser;
-    if (isNew && db) {
-      await db.collection('users').doc(result.user.uid).set({
-        email:            result.user.email,
-        displayName:      result.user.displayName || '',
-        photoURL:         result.user.photoURL || null,
-        company:          null,
-        plan:             'free',
-        enrichmentsUsed:  0,
-        enrichmentsLimit: 25,
-        createdAt:        firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-    _afterAuth(result.user);
-  } catch(err) {
-    if (err.code !== 'auth/popup-closed-by-user') showAuthMsg(authError(err.code));
-  }
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + '/dashboard' },
+  });
+  if (error) showAuthMsg(authError(error));
 }
 
 // ── Sign Out ───────────────────────────────────────────────────────────────────
 async function doSignOut() {
-  if (!auth) return;
-  await auth.signOut();
+  await sb.auth.signOut();
   document.getElementById('userMenu').classList.add('hidden');
   showToast('Signed out.');
 }
@@ -1113,10 +1067,6 @@ async function heroSignup() {
   const emailEl = document.getElementById('heroEmail');
   const email   = emailEl.value.trim();
   if (!email || !email.includes('@')) { emailEl.focus(); return; }
-  if (db) {
-    try { await db.collection('waitlist').add({ email, source: 'hero', createdAt: firebase.firestore.FieldValue.serverTimestamp() }); }
-    catch(_) {}
-  }
   emailEl.value = '';
   openAuth('signup');
   document.getElementById('suEmail').value = email;
@@ -1159,25 +1109,6 @@ function showAuthMsg(msg, type = 'error') {
   el.textContent = msg; el.classList.remove('hidden');
 }
 function clearAuthMsg() { document.getElementById('authMsg').classList.add('hidden'); }
-
-function authError(code) {
-  const map = {
-    'auth/invalid-email':          'Invalid email address.',
-    'auth/user-not-found':         'No account with that email. Try signing up.',
-    'auth/wrong-password':         'Incorrect password.',
-    'auth/invalid-credential':     'Incorrect email or password.',
-    'auth/email-already-in-use':   'An account already exists with this email. Try signing in.',
-    'auth/weak-password':          'Password must be at least 6 characters.',
-    'auth/too-many-requests':      'Too many attempts. Please try again later.',
-    'auth/network-request-failed': 'Network error. Check your connection.',
-    'auth/operation-not-allowed':  'Email/Password sign-in is not enabled. Go to Firebase Console → Authentication → Sign-in method and enable it.',
-    'auth/popup-blocked':          'Popup was blocked. Allow popups for this site and try again.',
-    'auth/unauthorized-domain':    'This domain is not authorised in Firebase. Add it under Authentication → Settings → Authorized domains.',
-    'auth/internal-error':         'Firebase internal error. Check the browser console for details.',
-  };
-  console.error('[Firebase auth error]', code);
-  return map[code] || `Auth error: ${code}`;
-}
 
 // ── Nav helpers ────────────────────────────────────────────────────────────────
 function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('hidden'); }
