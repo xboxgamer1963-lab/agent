@@ -1,0 +1,349 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>InsightEngine — AI Account Research Platform</title><meta name="description" content="Eight specialist AI agents that research every account, score fit 1–10, and push qualified leads to Pipedrive with a full dossier — automatically."><!-- Paddle Billing v2 --><script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script><!-- Supabase Auth --><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="https://cdn.tailwindcss.com?plugins=forms"></script><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"><script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: '#0f7c41',
+        'brand-dark': '#0c6335',
+        accent: '#245fc1',
+        surface: '#f5f6ff',
+        'on-surface': '#171717',
+        'on-surface-var': '#393939',
+        'on-surface-mute': '#6F6F6F',
+        'outline-var': '#EDEDED',
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      }
+    }
+  }
+}
+</script><style>* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+
+.hero-bg {
+  background: linear-gradient(180deg, #f5f6ff 0%, rgba(245,246,255,0) 100%);
+}
+.nav-glass {
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(15,124,65,0.08);
+}
+.gradient-text {
+  background: linear-gradient(135deg, #0f7c41 0%, #245fc1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.btn-glow {
+  background: linear-gradient(87deg, #12934d 44.6%, #206eef 99.2%);
+  transition: box-shadow 0.25s, transform 0.15s;
+}
+.btn-glow:hover {
+  box-shadow: 0 0 28px rgba(15,124,65,0.35);
+  transform: translateY(-1px);
+}
+.btn-tint {
+  background: linear-gradient(108deg, rgba(36,95,193,0.2) 11.86%, rgba(36,95,193,0.12) 98.48%);
+  color: #245fc1;
+  transition: background 0.2s;
+}
+.btn-tint:hover { background: rgba(36,95,193,0.22); }
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.55s ease, transform 0.55s ease; }
+.reveal.visible { opacity: 1; transform: none; }
+.feat-card { transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s; }
+.feat-card:hover { transform: translateY(-4px); box-shadow: 0 10px 36px rgba(15,124,65,0.1); border-color: rgba(15,124,65,0.3); }
+.price-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.price-card:hover { transform: translateY(-4px); }
+.agent-card { transition: border-color 0.2s, background 0.2s; }
+.agent-card:hover { border-color: rgba(15,124,65,0.4); background: rgba(15,124,65,0.03); }
+@keyframes marquee { 0%{ transform:translateX(0) } 100%{ transform:translateX(-50%) } }
+.marquee-track { animation: marquee 28s linear infinite; display: flex; gap: 64px; white-space: nowrap; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.pulse-dot { animation: pulse 1.5s ease-in-out infinite; }
+.modal-bg { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); background: rgba(23,23,23,0.55); }
+.auth-tab { border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; }
+.auth-tab.active { color: #0f7c41; border-bottom-color: #0f7c41; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #EDEDED; border-radius: 10px; }
+
+/* Hero product mock */
+.mock-card { box-shadow: 0px 4px 0px 0px rgba(246,246,246,0.25), 0px 8px 0px 0px #f6f6f6, 0px 16px 0px 0px #f6f6f6, 0px 21px 0px 0px #12462c; }
+.mock-float-1 { transform: rotate(-2deg); }
+.mock-float-2 { transform: rotate(2deg); }</style></head><body class="bg-white text-on-surface"><!-- ═══════════════════════
+     NAVBAR
+     ═══════════════════════ --><nav id="navbar" class="fixed top-0 left-0 right-0 z-50 nav-glass"><div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between"><a href="#" class="flex items-center gap-2 no-underline"><span class="text-[22px] font-black tracking-tight text-brand">Insight</span><span class="text-[22px] font-black tracking-tight text-on-surface">Engine</span></a><div class="hidden md:flex items-center gap-1"><a href="#why" class="px-4 py-2 text-[15px] font-medium text-on-surface-var hover:text-on-surface transition-colors rounded-lg hover:bg-black/5">Why</a><a href="#features" class="px-4 py-2 text-[15px] font-medium text-on-surface-var hover:text-on-surface transition-colors rounded-lg hover:bg-black/5">Features</a><a href="#how" class="px-4 py-2 text-[15px] font-medium text-on-surface-var hover:text-on-surface transition-colors rounded-lg hover:bg-black/5">How It Works</a><a href="#pricing" class="px-4 py-2 text-[15px] font-medium text-on-surface-var hover:text-on-surface transition-colors rounded-lg hover:bg-black/5">Pricing</a></div><div class="flex items-center gap-3"><div id="navAuthOut" class="flex items-center gap-3"><button onclick="openAuth('signin')" class="px-4 py-2 rounded-xl text-[14px] font-semibold text-brand bg-brand/10 hover:bg-brand/15 transition-colors">Log In</button><button onclick="openAuth('signup')" class="btn-glow px-5 py-2 text-[14px] font-semibold text-white rounded-xl">Get Started</button></div><div id="navAuthIn" class="hidden items-center gap-3 relative"><a href="/dashboard" class="px-4 py-2 text-[14px] font-semibold text-on-surface-var hover:text-on-surface transition-colors">Dashboard</a><button id="navAvatar" onclick="toggleUserMenu()" class="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white text-[13px] font-bold">?</button><div id="userMenu" class="hidden absolute top-12 right-0 bg-white border border-outline-var shadow-2xl rounded-2xl p-2 min-w-[200px] z-50"><p id="userMenuName" class="px-4 py-2 text-[13px] font-semibold text-on-surface border-b border-outline-var mb-1 truncate">User</p><a href="/dashboard" class="flex items-center gap-2 px-4 py-2.5 text-[13px] text-on-surface hover:bg-surface rounded-xl transition-colors"><span class="material-symbols-outlined text-[16px] text-brand">rocket_launch</span>Open Dashboard</a><button onclick="doSignOut()" class="w-full flex items-center gap-2 px-4 py-2.5 text-[13px] text-on-surface hover:bg-surface rounded-xl transition-colors text-left"><span class="material-symbols-outlined text-[16px] text-on-surface-var">logout</span>Sign Out</button></div></div><button onclick="toggleMobileMenu()" class="md:hidden text-on-surface"><span class="material-symbols-outlined text-[28px]">menu</span></button></div></div><div id="mobileMenu" class="hidden md:hidden bg-white border-t border-outline-var px-6 pb-5 pt-2 flex flex-col gap-1"><a href="#why" onclick="closeMobileMenu()" class="px-4 py-3 text-[15px] text-on-surface-var hover:text-on-surface rounded-xl">Why InsightEngine</a><a href="#features" onclick="closeMobileMenu()" class="px-4 py-3 text-[15px] text-on-surface-var hover:text-on-surface rounded-xl">Features</a><a href="#how" onclick="closeMobileMenu()" class="px-4 py-3 text-[15px] text-on-surface-var hover:text-on-surface rounded-xl">How It Works</a><a href="#pricing" onclick="closeMobileMenu()" class="px-4 py-3 text-[15px] text-on-surface-var hover:text-on-surface rounded-xl">Pricing</a><div class="border-t border-outline-var mt-2 pt-3 flex flex-col gap-2"><button onclick="openAuth('signin');closeMobileMenu()" class="px-4 py-3 text-[15px] font-semibold text-on-surface-var text-left">Log In</button><button onclick="openAuth('signup');closeMobileMenu()" class="btn-glow px-5 py-3 text-[15px] font-semibold text-white rounded-xl text-center">Get Started Free</button></div></div></nav><!-- ═══════════════════════
+     HERO
+     ═══════════════════════ --><section class="relative hero-bg overflow-hidden pt-32 pb-20"><div class="relative z-10 max-w-7xl mx-auto px-6"><div class="grid lg:grid-cols-2 gap-16 items-center mb-16"><!-- Left: copy --><div><div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-brand/15 bg-brand/5 text-brand text-[11px] font-mono font-semibold tracking-widest uppercase mb-8"><span class="w-1.5 h-1.5 rounded-full bg-brand pulse-dot"></span>8 Specialist AI Agents · Powered by Gemini</div><h1 class="text-[44px] md:text-[64px] font-black leading-[1.05] tracking-tight mb-6 text-on-surface">Turn Account Research<br><span class="gradient-text">from Days to Minutes</span></h1><p class="text-[18px] text-on-surface-var leading-relaxed max-w-xl mb-10">Eight named AI agents research every account, score fit 1–10, and push qualified leads to<strong class="text-on-surface font-semibold">Pipedrive</strong> with a full intelligence dossier — automatically.</p><div class="flex flex-col sm:flex-row items-stretch gap-4 mb-12"><div class="flex items-stretch flex-1 max-w-md"><input id="heroEmail" type="email" placeholder="Enter your work email" class="flex-1 w-full px-5 py-3.5 bg-white border border-outline-var border-r-0 text-on-surface placeholder-on-surface-mute text-[15px] rounded-l-xl focus:outline-none focus:border-brand/60" onkeydown="if(event.key==='Enter')heroSignup()"><button onclick="heroSignup()" class="btn-glow px-6 py-3.5 text-[15px] font-bold text-white rounded-r-xl whitespace-nowrap">Get Early Access</button></div><button onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})" class="btn-tint px-6 py-3.5 text-[15px] font-bold rounded-xl whitespace-nowrap">See how it works</button></div><div class="flex flex-wrap gap-10"><div><p class="text-[30px] font-black text-on-surface leading-none">8×</p><p class="text-[11px] font-mono text-on-surface-mute tracking-widest mt-1">FASTER RESEARCH</p></div><div><p class="text-[30px] font-black text-on-surface leading-none">94%</p><p class="text-[11px] font-mono text-on-surface-mute tracking-widest mt-1">ACCURACY RATE</p></div><div><p class="text-[30px] font-black text-on-surface leading-none">5×</p><p class="text-[11px] font-mono text-on-surface-mute tracking-widest mt-1">PARALLEL RUNS</p></div></div></div><!-- Right: product mock --><div class="relative h-[500px] hidden lg:block"><div class="absolute inset-0 rounded-[24px]" style="background:radial-gradient(ellipse 70% 60% at 70% 20%, rgba(15,124,65,0.12), transparent 70%)"></div><div class="absolute top-6 left-2 w-[420px] mock-card mock-float-1 bg-white border border-black/5 rounded-[20px] p-5"><div class="flex items-center justify-between mb-4"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-[#f2fffb] flex items-center justify-center"><span class="material-symbols-outlined text-brand text-[20px]">smart_toy</span></div><p class="text-[14px] font-semibold text-on-surface">AI Agent · Atlas</p></div><span class="material-symbols-outlined text-on-surface-mute text-[18px]">drag_indicator</span></div><div class="h-px bg-outline-var mb-4"></div><div class="space-y-3"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-[#f2fffb] flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[16px]">travel_explore</span></div><p class="flex-1 text-[13px] text-on-surface">Deep web research</p><span class="px-2 py-0.5 bg-[#f3f3f3] text-on-surface-mute rounded text-[12px] font-mono">4</span></div><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-white border border-black/5 flex items-center justify-center shrink-0 p-1.5"><img src="/assets/google-sheets.png" alt="Google Sheets" class="w-full h-full object-contain"></div><p class="flex-1 text-[13px] text-on-surface">Google Sheets</p><span class="px-2 py-0.5 bg-[#f3f3f3] text-on-surface-mute rounded text-[12px] font-mono">12</span></div></div></div><div class="absolute bottom-8 right-2 w-[380px] mock-card mock-float-2 bg-white border border-black/5 rounded-[20px] p-5"><div class="flex items-center gap-2 mb-3 px-1"><span class="material-symbols-outlined text-brand text-[16px]">bolt</span><p class="text-[13px] font-semibold text-brand">Trigger</p></div><div class="flex items-center justify-between border border-black/5 rounded-[16px] px-4 py-3"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-[#f2fff5] flex items-center justify-center"><span class="material-symbols-outlined text-brand text-[18px]">schedule</span></div><p class="text-[13px] font-semibold text-on-surface">Start on schedule</p></div><span class="material-symbols-outlined text-on-surface-mute text-[16px]">drag_indicator</span></div></div></div></div><!-- Integrations row --><div class="flex flex-wrap items-center justify-center gap-x-12 gap-y-4 pt-10 border-t border-outline-var"><span class="flex items-center gap-2 text-on-surface-mute text-[14px] font-medium"><img src="/assets/google-sheets.png" class="w-5 h-5 object-contain"> Google Sheets</span><span class="flex items-center gap-2 text-on-surface-mute text-[14px] font-medium"><span class="material-symbols-outlined text-[20px]">sync_alt</span> Pipedrive</span><span class="flex items-center gap-2 text-on-surface-mute text-[14px] font-medium"><span class="material-symbols-outlined text-[20px]">auto_awesome</span> Gemini</span><span class="flex items-center gap-2 text-on-surface-mute text-[14px] font-medium"><span class="material-symbols-outlined text-[20px]">travel_explore</span> Tavily</span><span class="flex items-center gap-2 text-on-surface-mute text-[14px] font-medium"><span class="material-symbols-outlined text-[20px]">public</span> Firecrawl</span><span class="flex items-center gap-2 text-on-surface-mute text-[14px] font-medium"><span class="material-symbols-outlined text-[20px]">group</span> LinkedIn Sales Nav</span></div></div></section><!-- ═══════════════════════
+     TRY IT — capability panel
+     ═══════════════════════ --><div class="py-20 bg-white"><div class="max-w-6xl mx-auto px-6"><p class="text-center text-[11px] font-mono font-semibold text-brand tracking-widest uppercase mb-3">Try it</p><h2 class="text-center text-[28px] md:text-[34px] font-black text-on-surface leading-tight tracking-tight mb-10 max-w-2xl mx-auto">An AI assistant that works while others can't</h2><div class="bg-surface border border-outline-var rounded-[24px] p-6 md:p-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4"><div class="bg-white rounded-2xl p-5 border border-outline-var flex items-start gap-3"><div class="w-9 h-9 rounded-lg bg-[#f2fffb] flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[18px]">travel_explore</span></div><div><p class="text-[14px] font-bold text-on-surface">Deep Web Research</p><p class="text-[12px] text-on-surface-var mt-0.5">Atlas scrapes sites &amp; searches the web</p></div></div><div class="bg-white rounded-2xl p-5 border border-outline-var flex items-start gap-3"><div class="w-9 h-9 rounded-lg bg-[#f2fffb] flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[18px]">newspaper</span></div><div><p class="text-[14px] font-bold text-on-surface">Live News Intelligence</p><p class="text-[12px] text-on-surface-var mt-0.5">Echo scans funding &amp; growth signals</p></div></div><div class="bg-white rounded-2xl p-5 border border-outline-var flex items-start gap-3"><div class="w-9 h-9 rounded-lg bg-[#f2fffb] flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[18px]">group</span></div><div><p class="text-[14px] font-bold text-on-surface">LinkedIn Analysis</p><p class="text-[12px] text-on-surface-var mt-0.5">Talent maps team growth &amp; roles</p></div></div><div class="bg-white rounded-2xl p-5 border border-outline-var flex items-start gap-3"><div class="w-9 h-9 rounded-lg bg-[#f2fffb] flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[18px]">grade</span></div><div><p class="text-[14px] font-bold text-on-surface">Strict AI Scoring</p><p class="text-[12px] text-on-surface-var mt-0.5">Oracle scores 1–10 with auto-retry</p></div></div><div class="bg-white rounded-2xl p-5 border border-outline-var flex items-start gap-3"><div class="w-9 h-9 rounded-lg bg-[#f2fffb] flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[18px]">manage_search</span></div><div><p class="text-[14px] font-bold text-on-surface">Sales Nav Strings</p><p class="text-[12px] text-on-surface-var mt-0.5">Pitch builds ready-to-paste Boolean search</p></div></div><div class="bg-white rounded-2xl p-5 border border-outline-var flex items-start gap-3"><div class="w-9 h-9 rounded-lg bg-[#f2fffb] flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[18px]">sync_alt</span></div><div><p class="text-[14px] font-bold text-on-surface">Automatic CRM Sync</p><p class="text-[12px] text-on-surface-var mt-0.5">Ledger pushes to Pipedrive, zero input</p></div></div></div></div></div><!-- ═══════════════════════
+     WHY / PROBLEM
+     ═══════════════════════ --><section id="why" class="py-24 bg-white"><div class="max-w-5xl mx-auto px-6"><div class="text-center mb-16 reveal"><span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">The Problem</span><h2 class="text-[36px] md:text-[44px] font-black text-on-surface leading-tight tracking-tight mt-3">B2B research is broken</h2><p class="text-[16px] text-on-surface-var leading-relaxed max-w-2xl mx-auto mt-4">Sales reps spend 4+ hours manually researching each account. Most of that effort is wasted on leads that never qualify.</p></div><div class="grid md:grid-cols-2 gap-6"><div class="reveal bg-surface rounded-[24px] p-8 border border-outline-var"><p class="text-[13px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide mb-4">Manual research</p><div class="flex items-end gap-2 mb-3"><p class="text-[56px] font-black text-on-surface-mute leading-none">4+</p><p class="text-[16px] text-on-surface-mute mb-2">hrs / account</p></div><div class="w-full bg-outline-var h-2 rounded-full overflow-hidden mb-4"><div class="bg-on-surface-mute h-full rounded-full" style="width:15%"></div></div><p class="text-[14px] text-on-surface-var leading-relaxed">Copy-pasted from LinkedIn, news, and company sites. Inconsistent scoring. Research lives in notes and Slack — nothing lands in the CRM.</p></div><div class="reveal rounded-[24px] p-8 relative overflow-hidden" style="background:linear-gradient(135deg,#0f7c41,#12934d 60%,#206eef)"><p class="text-[13px] font-mono font-semibold text-white/70 uppercase tracking-wide mb-4">With InsightEngine</p><div class="flex items-end gap-2 mb-3"><p class="text-[56px] font-black text-white leading-none">&lt;5</p><p class="text-[16px] text-white/70 mb-2">min / account</p></div><div class="w-full bg-white/20 h-2 rounded-full overflow-hidden mb-4"><div class="bg-white h-full rounded-full" style="width:99%"></div></div><p class="text-[14px] text-white/80 leading-relaxed">Eight agents research, score 1–10 against your exact value prop, and push qualified accounts straight to Pipedrive — automatically.</p></div></div></div></section><!-- ═══════════════════════
+     ABOUT / SOLUTION
+     ═══════════════════════ --><section id="about" class="py-24 bg-surface"><div class="max-w-6xl mx-auto px-6"><div class="grid md:grid-cols-2 gap-16 items-center"><div class="reveal"><span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">The Solution</span><h2 class="text-[36px] md:text-[44px] font-black text-on-surface leading-tight tracking-tight mt-3 mb-6">Your AI research department</h2><p class="text-[16px] text-on-surface-var leading-relaxed mb-5">InsightEngine deploys eight specialist agents the moment you connect a spreadsheet. They fan out across the web — news archives, LinkedIn, company sites — synthesize everything, and score each account against your exact value proposition.</p><p class="text-[16px] text-on-surface-var leading-relaxed mb-8">Qualified accounts land in Pipedrive with a full dossier, outreach angles, and LinkedIn Sales Navigator search strings — in minutes, not days.</p><div class="flex flex-col gap-3"><div class="flex items-center gap-3 text-[15px] text-on-surface font-medium"><span class="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>Reads your Google Sheet of prospect accounts</div><div class="flex items-center gap-3 text-[15px] text-on-surface font-medium"><span class="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>Scores each account 1–10 against your value prop</div><div class="flex items-center gap-3 text-[15px] text-on-surface font-medium"><span class="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>Pushes qualified leads to Pipedrive automatically</div><div class="flex items-center gap-3 text-[15px] text-on-surface font-medium"><span class="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span>Generates LinkedIn Sales Navigator search strings</div></div></div><!-- Mini dashboard preview --><div class="reveal"><div class="bg-white rounded-[24px] border border-outline-var overflow-hidden shadow-xl"><div class="bg-[#171717] px-5 py-3 flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-red-400/70"></div><div class="w-3 h-3 rounded-full bg-amber-400/70"></div><div class="w-3 h-3 rounded-full bg-green-400/70"></div><span class="ml-3 text-white/30 text-[12px] font-mono">insightengine.ai/dashboard</span></div><div class="p-6 space-y-3"><div class="flex items-center gap-3 p-3 bg-surface rounded-xl border border-outline-var"><div class="w-8 h-8 bg-brand/10 rounded-lg flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[16px]">business</span></div><div class="flex-1 min-w-0"><p class="text-[13px] font-semibold text-on-surface">Acme Fleet Management</p><p class="text-[11px] font-mono text-on-surface-var">acmefleet.com</p></div><span class="px-2 py-0.5 bg-brand/10 text-brand rounded text-[11px] font-mono font-bold shrink-0">9/10</span><span class="w-2 h-2 rounded-full bg-green-500 shrink-0"></span></div><div class="flex items-center gap-3 p-3 bg-surface rounded-xl border border-outline-var"><div class="w-8 h-8 bg-brand/10 rounded-lg flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-brand text-[16px]">business</span></div><div class="flex-1 min-w-0"><p class="text-[13px] font-semibold text-on-surface">Meridian Logistics</p><p class="text-[11px] font-mono text-on-surface-var">meridianlog.io</p></div><span class="px-2 py-0.5 bg-brand/10 text-brand rounded text-[11px] font-mono font-bold shrink-0">8/10</span><span class="w-2 h-2 rounded-full bg-green-500 pulse-dot shrink-0"></span></div><div class="flex items-center gap-3 p-3 bg-surface rounded-xl border border-outline-var opacity-40"><div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-gray-400 text-[16px]">business</span></div><div class="flex-1 min-w-0"><p class="text-[13px] font-semibold text-on-surface">Dropship Inc</p><p class="text-[11px] font-mono text-on-surface-var">dropship.com</p></div><span class="px-2 py-0.5 bg-gray-100 text-gray-400 rounded text-[11px] font-mono font-bold shrink-0">3/10</span><span class="w-2 h-2 rounded-full bg-gray-300 shrink-0"></span></div><div class="p-3 bg-[#f2fffb] border border-brand/20 rounded-xl mt-1"><p class="text-[10px] font-mono font-semibold text-brand uppercase tracking-wide mb-1">Acme Fleet — Key Insight</p><p class="text-[12px] text-on-surface-var leading-relaxed">Recent $12M Series B + 3 open Fleet Ops Manager roles. CSA compliance pressure evident. High-intent buyer signal.</p></div></div></div></div></div></div></section><!-- ═══════════════════════
+     FEATURES
+     ═══════════════════════ --><section id="features" class="py-24 bg-white"><div class="max-w-5xl mx-auto px-6"><div class="text-center mb-16 reveal"><span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">No AI magic</span><h2 class="text-[36px] md:text-[44px] font-black text-on-surface leading-tight tracking-tight mt-3">Just high-performance research tech</h2><p class="text-[16px] text-on-surface-var mt-4 max-w-2xl mx-auto">From raw prospect list to enriched CRM record — fully automated, deeply intelligent.</p></div><div class="grid md:grid-cols-2 gap-5"><div class="feat-card reveal bg-surface rounded-[24px] p-8 border border-outline-var"><div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5 bg-brand/10"><span class="material-symbols-outlined text-brand text-[24px]">travel_explore</span></div><h3 class="text-[20px] font-bold text-on-surface mb-2">Deep Web Research</h3><p class="text-[14px] text-on-surface-var leading-relaxed">Atlas searches the web and scrapes company sites via Firecrawl. Real intelligence — not surface-level summaries.</p></div><div class="feat-card reveal bg-surface rounded-[24px] p-8 border border-outline-var"><div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5 bg-brand/10"><span class="material-symbols-outlined text-brand text-[24px]">newspaper</span></div><h3 class="text-[20px] font-bold text-on-surface mb-2">Live News Intelligence</h3><p class="text-[14px] text-on-surface-var leading-relaxed">Echo scans funding rounds, product launches, exec changes, and growth signals via Tavily real-time search.</p></div><div class="feat-card reveal bg-surface rounded-[24px] p-8 border border-outline-var"><div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5 bg-brand/10"><span class="material-symbols-outlined text-brand text-[24px]">group</span></div><h3 class="text-[20px] font-bold text-on-surface mb-2">LinkedIn Analysis</h3><p class="text-[14px] text-on-surface-var leading-relaxed">Talent maps team growth, open roles, and pain signals to surface buyer intent before you ever pick up the phone.</p></div><div class="feat-card reveal bg-surface rounded-[24px] p-8 border border-outline-var"><div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5 bg-brand/10"><span class="material-symbols-outlined text-brand text-[24px]">grade</span></div><h3 class="text-[20px] font-bold text-on-surface mb-2">Strict AI Scoring</h3><p class="text-[14px] text-on-surface-var leading-relaxed">Oracle scores 1–10 against your exact value proposition, with automatic retry on borderline accounts using a fresh angle.</p></div></div></div></section><!-- ═══════════════════════
+     AGENT CREW
+     ═══════════════════════ --><section class="py-24 bg-surface"><div class="max-w-4xl mx-auto px-6 text-center reveal"><span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">The Crew</span><h2 class="text-[36px] md:text-[44px] font-black text-on-surface leading-tight tracking-tight mt-3 mb-4">Integrates with the tools you already use</h2><p class="text-[16px] text-on-surface-var mb-12 max-w-2xl mx-auto">Eight named agents — Atlas, Echo, Talent, Oracle, Pitch, Hunter, Scribe, and Ledger — connect these services end to end.</p><div class="flex flex-wrap items-center justify-center gap-4 mb-10"><div class="agent-card flex items-center gap-2 px-5 py-3 bg-white rounded-full border border-outline-var"><img src="/assets/google-sheets.png" class="w-5 h-5 object-contain"> <span class="text-[14px] font-semibold text-on-surface">Google Sheets</span></div><div class="agent-card flex items-center gap-2 px-5 py-3 bg-white rounded-full border border-outline-var"><span class="material-symbols-outlined text-brand text-[20px]">sync_alt</span> <span class="text-[14px] font-semibold text-on-surface">Pipedrive</span></div><div class="agent-card flex items-center gap-2 px-5 py-3 bg-white rounded-full border border-outline-var"><span class="material-symbols-outlined text-brand text-[20px]">auto_awesome</span> <span class="text-[14px] font-semibold text-on-surface">Gemini</span></div><div class="agent-card flex items-center gap-2 px-5 py-3 bg-white rounded-full border border-outline-var"><span class="material-symbols-outlined text-brand text-[20px]">travel_explore</span> <span class="text-[14px] font-semibold text-on-surface">Tavily</span></div><div class="agent-card flex items-center gap-2 px-5 py-3 bg-white rounded-full border border-outline-var"><span class="material-symbols-outlined text-brand text-[20px]">public</span> <span class="text-[14px] font-semibold text-on-surface">Firecrawl</span></div><div class="agent-card flex items-center gap-2 px-5 py-3 bg-white rounded-full border border-outline-var"><span class="material-symbols-outlined text-brand text-[20px]">group</span> <span class="text-[14px] font-semibold text-on-surface">LinkedIn Sales Nav</span></div></div><a href="#features" class="btn-tint inline-flex px-6 py-3 rounded-xl text-[14px] font-bold">See all features</a></div></section><!-- ═══════════════════════
+     HOW IT WORKS
+     ═══════════════════════ --><section id="how" class="py-24 bg-surface"><div class="max-w-4xl mx-auto px-6"><div class="text-center mb-16 reveal"><span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">How It Works</span><h2 class="text-[44px] md:text-[54px] font-black text-on-surface leading-tight tracking-tight mt-3">Four steps to enriched pipeline</h2></div><div class="space-y-5"><div class="reveal flex gap-6 items-start"><div class="flex flex-col items-center shrink-0"><div class="w-12 h-12 rounded-full bg-brand flex items-center justify-center text-white font-black text-[18px]">1</div><div class="w-px h-16 mt-2" style="background:linear-gradient(180deg,#0f7c41,transparent)"></div></div><div class="bg-white rounded-2xl border border-outline-var/20 p-7 flex-1"><h3 class="text-[20px] font-bold text-on-surface mb-2">Connect your Google Sheet</h3><p class="text-[15px] text-on-surface-var leading-relaxed">Paste your sheet ID, enter your value proposition, and click Start. That's your entire configuration. No ETL, no CSV uploads.</p></div></div><div class="reveal flex gap-6 items-start"><div class="flex flex-col items-center shrink-0"><div class="w-12 h-12 rounded-full bg-brand flex items-center justify-center text-white font-black text-[18px]">2</div><div class="w-px h-16 mt-2" style="background:linear-gradient(180deg,#0f7c41,transparent)"></div></div><div class="bg-white rounded-2xl border border-outline-var/20 p-7 flex-1"><h3 class="text-[20px] font-bold text-on-surface mb-2">Agents fan out in parallel</h3><p class="text-[15px] text-on-surface-var leading-relaxed">Five accounts process concurrently. Eight agents per account cover web research, news, LinkedIn, scoring, and dossier writing simultaneously.</p></div></div><div class="reveal flex gap-6 items-start"><div class="flex flex-col items-center shrink-0"><div class="w-12 h-12 rounded-full bg-brand flex items-center justify-center text-white font-black text-[18px]">3</div><div class="w-px h-16 mt-2" style="background:linear-gradient(180deg,#0f7c41,transparent)"></div></div><div class="bg-white rounded-2xl border border-outline-var/20 p-7 flex-1"><h3 class="text-[20px] font-bold text-on-surface mb-2">Strict scoring with auto-retry</h3><p class="text-[15px] text-on-surface-var leading-relaxed">Accounts below your threshold are re-evaluated with a different hypothesis angle. Still below? Dropped. Above? Shipped to Pipedrive.</p></div></div><div class="reveal flex gap-6 items-start"><div class="shrink-0 w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white"><span class="material-symbols-outlined text-[22px]">check</span></div><div class="bg-green-50 border border-green-200 rounded-2xl p-7 flex-1"><h3 class="text-[20px] font-bold text-on-surface mb-2">Qualified leads hit your CRM</h3><p class="text-[15px] text-on-surface-var leading-relaxed">Ledger creates the Pipedrive org, attaches the full dossier, applies custom labels, and adds LinkedIn Boolean search strings. Your reps show up prepared.</p></div></div></div></div></section><!-- ═══════════════════════
+     PRICING
+     ═══════════════════════ --><section id="pricing" class="py-24 bg-white"><div class="max-w-5xl mx-auto px-6"><div class="text-center mb-16 reveal"><span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">Pricing</span><h2 class="text-[44px] md:text-[54px] font-black text-on-surface leading-tight tracking-tight mt-3">Two plans, no surprises</h2><p class="text-[18px] text-on-surface-var mt-4">Pay monthly, cancel anytime. No setup fees, no contracts.</p></div><div class="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto"><!-- Pro $149 --><div class="price-card reveal bg-surface rounded-2xl border border-outline-var/20 p-9"><p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-widest mb-3">Pro</p><div class="flex items-end gap-1 mb-1"><span class="text-[56px] font-black text-on-surface leading-none">$149</span><span class="text-[18px] text-on-surface-var mb-2.5">/mo</span></div><p class="text-[14px] text-on-surface-var mb-8">For individual reps and small teams.</p><ul class="space-y-3.5 mb-10"><li class="flex items-center gap-3 text-[14px]"><span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-brand/10"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span><span class="text-on-surface">500 account enrichments / month</span></li><li class="flex items-center gap-3 text-[14px]"><span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-brand/10"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span><span class="text-on-surface">All 8 specialist agents</span></li><li class="flex items-center gap-3 text-[14px]"><span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-brand/10"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span><span class="text-on-surface">5× parallel batch processing</span></li><li class="flex items-center gap-3 text-[14px]"><span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-brand/10"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span><span class="text-on-surface">Pipedrive + Google Sheets sync</span></li><li class="flex items-center gap-3 text-[14px]"><span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-brand/10"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span><span class="text-on-surface">LinkedIn Sales Navigator strings</span></li><li class="flex items-center gap-3 text-[14px]"><span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-brand/10"><span class="material-symbols-outlined text-brand text-[13px]">check</span></span><span class="text-on-surface">Email support</span></li></ul><button onclick="startCheckout('pro')" class="w-full py-3.5 border-2 border-brand text-brand font-bold rounded-xl hover:bg-brand hover:text-white transition-all text-[15px]">Get Pro</button></div><!-- Scale $300 --><div class="price-card reveal rounded-[24px] border p-9 relative overflow-hidden" style="background:linear-gradient(135deg,#0f7c41,#12934d 55%,#206eef);border-color:rgba(15,124,65,0.4);box-shadow:0 25px 60px rgba(15,124,65,0.25)"><div class="absolute top-5 right-5 px-3 py-1 bg-white/20 rounded-full text-white text-[10px] font-mono font-bold tracking-wide">MOST VALUE</div><p class="text-[11px] font-mono font-semibold uppercase tracking-widest mb-3 text-white/60">Scale</p><div class="flex items-end gap-1 mb-1"><span class="text-[56px] font-black text-white leading-none">$300</span><span class="text-[18px] mb-2.5 text-white/70">/mo</span></div><p class="text-[14px] mb-8 text-white/70">For growing revenue teams.</p><ul class="space-y-3.5 mb-10"><li class="flex items-center gap-3 text-[14px]"><span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-white/20"><span class="material-symbols-outlined text-white text-[13px]">check</span></span><span class="text-white">Unlimited enrichments</span></li><li class="flex items-center gap-3 text-[14px]"><span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-white/20"><span class="material-symbols-outlined text-white text-[13px]">check</span></span><span class="text-white">All 8 specialist agents</span></li><li class="flex items-center gap-3 text-[14px]"><span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-white/20"><span class="material-symbols-outlined text-white text-[13px]">check</span></span><span class="text-white">10× parallel batch processing</span></li><li class="flex items-center gap-3 text-[14px]"><span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-white/20"><span class="material-symbols-outlined text-white text-[13px]">check</span></span><span class="text-white">Everything in Pro</span></li><li class="flex items-center gap-3 text-[14px]"><span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-white/20"><span class="material-symbols-outlined text-white text-[13px]">check</span></span><span class="text-white">Up to 5 team seats</span></li><li class="flex items-center gap-3 text-[14px]"><span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-white/20"><span class="material-symbols-outlined text-white text-[13px]">check</span></span><span class="text-white">Priority Slack support + onboarding</span></li></ul><button onclick="startCheckout('scale')" class="btn-glow w-full py-3.5 font-bold text-white rounded-xl text-[15px]">Get Scale</button></div></div><p class="text-center text-[13px] font-mono mt-10" style="color:#888">Payments securely processed by <strong style="color:#171717">Paddle</strong> &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp; No long-term contracts</p></div></section><!-- ═══════════════════════
+     TESTIMONIALS
+     ═══════════════════════ --><section class="py-24 bg-surface"><div class="max-w-6xl mx-auto px-6"><div class="text-center mb-16 reveal"><span class="text-[11px] font-mono font-semibold text-brand tracking-widest uppercase">Testimonials</span><h2 class="text-[44px] font-black text-on-surface leading-tight tracking-tight mt-3">Revenue teams love it</h2></div><div class="grid md:grid-cols-3 gap-6"><div class="reveal bg-white rounded-2xl border border-outline-var/20 p-8 hover:border-brand/30 transition-colors"><div class="flex gap-0.5 mb-5"><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span></div><p class="text-[15px] text-on-surface leading-relaxed mb-6">"We cut research time by 80%. The agents surface signals we'd never find manually — funding rounds, exec changes, open roles. InsightEngine is now the first step in every BDR's workflow."</p><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-white font-bold text-[13px] shrink-0">SR</div><div><p class="text-[14px] font-semibold text-on-surface">Sarah Reynolds</p><p class="text-[12px] font-mono text-on-surface-var">Head of BDR · NovaTech</p></div></div></div><div class="reveal bg-white rounded-2xl border border-outline-var/20 p-8 hover:border-brand/30 transition-colors"><div class="flex gap-0.5 mb-5"><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span></div><p class="text-[15px] text-on-surface leading-relaxed mb-6">"The Pipedrive integration is seamless. Reps open a deal and the full dossier is already there — hypothesis, news, LinkedIn signals, outreach angles. It's like having a research analyst per rep."</p><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-[13px] shrink-0">MK</div><div><p class="text-[14px] font-semibold text-on-surface">Marcus Kim</p><p class="text-[12px] font-mono text-on-surface-var">VP Sales · Strata Labs</p></div></div></div><div class="reveal bg-white rounded-2xl border border-outline-var/20 p-8 hover:border-brand/30 transition-colors"><div class="flex gap-0.5 mb-5"><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span><span class="material-symbols-outlined text-amber-400 text-[20px]" style="font-variation-settings:'FILL' 1">star</span></div><p class="text-[15px] text-on-surface leading-relaxed mb-6">"We ran 200 accounts in an afternoon. The 9/10 accounts had every signal we look for. Dropped the 3s without hesitation. Pipeline quality improved immediately — fewer wasted cycles."</p><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-[13px] shrink-0">AL</div><div><p class="text-[14px] font-semibold text-on-surface">Aisha Laurent</p><p class="text-[12px] font-mono text-on-surface-var">Revenue Ops · Meridian AI</p></div></div></div></div></div></section><!-- ═══════════════════════
+     FINAL CTA
+     ═══════════════════════ --><section class="relative py-24 overflow-hidden text-center"><div class="max-w-3xl mx-auto px-6 relative z-10 rounded-[32px] py-16 px-8" style="background:linear-gradient(135deg,#0f7c41,#12934d 55%,#206eef)"><span class="text-[11px] font-mono font-semibold text-white/70 tracking-widest uppercase">Get Started Today</span><h2 class="text-[36px] md:text-[48px] font-black text-white leading-tight tracking-tight mt-3 mb-5">Enrich your first accounts<br>in under 5 minutes</h2><p class="text-[16px] mb-10 text-white/70">No credit card. No setup fees. 25 free enrichments to prove the value.</p><div class="flex flex-col sm:flex-row items-center justify-center gap-4"><button onclick="openAuth('signup')" class="px-10 py-4 text-[17px] font-bold text-brand bg-white rounded-2xl hover:shadow-xl transition-shadow">Create Free Account</button><a href="#features" class="px-10 py-4 text-[17px] font-semibold transition-colors" style="color:rgba(255,255,255,0.55)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">See all features →</a></div></div></section><!-- ═══════════════════════
+     FOOTER
+     ═══════════════════════ --><footer style="background:#171717" class="text-white py-16"><div class="max-w-6xl mx-auto px-6"><div class="flex items-center gap-2 mb-10"><span class="text-[20px] font-black tracking-tight text-brand">Insight</span><span class="text-[20px] font-black tracking-tight text-white">Engine</span></div><div class="grid sm:grid-cols-2 md:grid-cols-4 gap-10 mb-12"><div><p class="text-[11px] font-mono font-semibold uppercase tracking-widest mb-4" style="color:rgba(255,255,255,0.35)">Resources</p><ul class="space-y-2.5"><li><a href="#features" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.6)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">Features</a></li><li><a href="#how" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.6)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">How It Works</a></li><li><a href="#about" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.6)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">About</a></li><li><a href="/dashboard" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.6)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">Dashboard</a></li></ul></div><div><p class="text-[11px] font-mono font-semibold uppercase tracking-widest mb-4" style="color:rgba(255,255,255,0.35)">Explore</p><ul class="space-y-2.5"><li><a href="#pricing" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.6)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">Pricing</a></li><li><a href="#" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.6)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">Privacy Policy</a></li><li><a href="#" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.6)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">Terms of Service</a></li></ul></div><div><p class="text-[11px] font-mono font-semibold uppercase tracking-widest mb-4" style="color:rgba(255,255,255,0.35)">Use Cases</p><ul class="space-y-2.5"><li><span class="text-[14px]" style="color:rgba(255,255,255,0.6)">Google Sheets sync</span></li><li><span class="text-[14px]" style="color:rgba(255,255,255,0.6)">Pipedrive CRM</span></li><li><span class="text-[14px]" style="color:rgba(255,255,255,0.6)">LinkedIn Sales Nav</span></li><li><span class="text-[14px]" style="color:rgba(255,255,255,0.6)">Gemini 2.0 Flash</span></li></ul></div><div><p class="text-[11px] font-mono font-semibold uppercase tracking-widest mb-4" style="color:rgba(255,255,255,0.35)">Social Media</p><ul class="space-y-2.5"><li><a href="#" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.6)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">X / Twitter</a></li><li><a href="#" class="text-[14px] transition-colors" style="color:rgba(255,255,255,0.6)" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.6)'">LinkedIn</a></li></ul></div></div><div class="border-t pt-8 flex flex-col sm:flex-row items-center justify-between gap-4" style="border-color:rgba(255,255,255,0.1)"><p class="text-[13px] font-mono" style="color:rgba(255,255,255,0.35)">© 2026 InsightEngine. All rights reserved.</p><p class="text-[13px] font-mono" style="color:rgba(255,255,255,0.25)">Built with Gemini · Tavily · Firecrawl · FastAPI</p></div></div></footer><!-- ═══════════════════════
+     AUTH MODAL
+     ═══════════════════════ --><div id="authModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4"><div class="modal-bg absolute inset-0" onclick="closeAuth()"></div><div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"><div class="flex items-center justify-between px-8 pt-7 pb-5 border-b border-outline-var/20"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-white text-[20px]" style="font-variation-settings:'FILL' 1">analytics</span></div><span class="text-[17px] font-black text-on-surface tracking-tight">InsightEngine</span></div><button onclick="closeAuth()" class="w-8 h-8 flex items-center justify-center text-on-surface-var hover:text-on-surface rounded-full hover:bg-surface transition-colors"><span class="material-symbols-outlined text-[20px]">close</span></button></div><div class="flex border-b border-outline-var/20 px-8"><button id="tabSignin" class="auth-tab active py-3 mr-6 text-[14px] font-semibold text-brand" onclick="switchAuthTab('signin')">Sign In</button><button id="tabSignup" class="auth-tab py-3 text-[14px] font-semibold text-on-surface-var" onclick="switchAuthTab('signup')">Create Account</button></div><div class="px-8 py-7"><div id="authMsg" class="hidden mb-4 p-3 rounded-xl text-[14px] font-medium"></div><!-- Sign In --><form id="signinForm" onsubmit="doSignIn(event)" class="space-y-4"><div><label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">Email</label><input id="siEmail" type="email" required placeholder="you@company.com" class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface placeholder-on-surface-var/40 focus:border-brand focus:outline-none transition-colors"></div><div><label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">Password</label><input id="siPassword" type="password" required placeholder="••••••••" class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface focus:border-brand focus:outline-none transition-colors"></div><button type="submit" id="signinBtn" class="btn-glow w-full py-3.5 font-bold text-white rounded-xl text-[15px]">Sign In</button></form><!-- Sign Up --><form id="signupForm" onsubmit="doSignUp(event)" class="space-y-4 hidden"><div class="grid grid-cols-2 gap-3"><div><label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">First Name</label><input id="suFirst" type="text" required placeholder="Jane" class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface placeholder-on-surface-var/40 focus:border-brand focus:outline-none transition-colors"></div><div><label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">Last Name</label><input id="suLast" type="text" required placeholder="Smith" class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface placeholder-on-surface-var/40 focus:border-brand focus:outline-none transition-colors"></div></div><div><label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">Work Email</label><input id="suEmail" type="email" required placeholder="you@company.com" class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface placeholder-on-surface-var/40 focus:border-brand focus:outline-none transition-colors"></div><div><label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">Company <span class="normal-case font-normal text-on-surface-var/60">(optional)</span></label><input id="suCompany" type="text" placeholder="Acme Corp" class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface placeholder-on-surface-var/40 focus:border-brand focus:outline-none transition-colors"></div><div><label class="block text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1.5">Password</label><input id="suPassword" type="password" required minlength="8" placeholder="Min. 8 characters" class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] text-on-surface focus:border-brand focus:outline-none transition-colors"></div><button type="submit" id="signupBtn" class="btn-glow w-full py-3.5 font-bold text-white rounded-xl text-[15px]">Create Free Account</button></form><div class="flex items-center gap-3 my-5"><div class="flex-1 h-px bg-outline-var/30"></div><span class="text-[12px] font-mono text-on-surface-var">OR</span><div class="flex-1 h-px bg-outline-var/30"></div></div><button onclick="doGoogleSignIn()" class="w-full flex items-center justify-center gap-3 py-3.5 border border-outline-var rounded-xl text-[15px] font-semibold text-on-surface hover:bg-surface transition-colors"><svg width="20" height="20" viewBox="0 0 48 48"><path d="M43.6,20H42V20H24v8h11.3C33.7,32.7,29.3,36,24,36c-6.6,0-12-5.4-12-12s5.4-12,12-12c3.1,0,5.8,1.2,8,3l5.7-5.7C34,6.1,29.3,4,24,4C13,4,4,13,4,24s9,20,20,20s20-9,20-20C44,22.7,43.9,21.3,43.6,20z" fill="#FFC107"></path><path d="M6.3,14.7l6.6,4.8C14.7,15.1,19,12,24,12c3.1,0,5.8,1.2,8,3l5.7-5.7C34,6.1,29.3,4,24,4C16.3,4,9.7,8.3,6.3,14.7z" fill="#FF3D00"></path><path d="M24,44c5.2,0,9.9-2,13.4-5.2l-6.2-5.2C29.2,35.1,26.7,36,24,36c-5.2,0-9.6-3.3-11.3-7.9l-6.5,5C9.5,39.6,16.2,44,24,44z" fill="#4CAF50"></path><path d="M43.6,20H42V20H24v8h11.3c-0.8,2.2-2.2,4.2-4.1,5.6l6.2,5.2C37,39.2,44,34,44,24C44,22.7,43.9,21.3,43.6,20z" fill="#1976D2"></path></svg>Continue with Google</button><p class="text-center text-[12px] text-on-surface-var mt-5">By signing up you agree to our<a href="#" class="text-brand hover:underline">Terms</a> &amp;<a href="#" class="text-brand hover:underline">Privacy Policy</a>.</p></div></div></div><!-- Toast --><div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] hidden pointer-events-none"><div class="bg-on-surface text-white px-6 py-3 rounded-xl text-[14px] font-medium shadow-2xl"><span id="toastMsg"></span></div></div><!-- ═══════════════════════
+     JAVASCRIPT
+     ═══════════════════════ --><script>
+// ── Paddle Config ─────────────────────────────────────────────────────────────
+// 1. Create products + prices in Paddle dashboard (Catalog → Products)
+// 2. Copy your client-side token: Paddle dashboard → Developer Tools → Authentication
+// 3. Copy each price's ID (starts with pri_) and paste below
+const paddleConfig = {
+  token:  'live_c8e376ae646df27cd19c64dbaaf',
+  prices: {
+    pro:   'pri_01kv82zdc4bx1es64f3sr8ra01',  // $149 / mo
+    scale: 'pri_01kv8303hjpa1d05ydv1eb8emn',  // $300 / mo
+  }
+};
+
+let _pendingPlan = null; // set when user clicks a pricing button before auth
+
+try {
+  Paddle.Initialize({
+    token: paddleConfig.token,
+    eventCallback: function(ev) {
+      if (ev.name !== 'checkout.completed') return;
+      window.location.href = '/dashboard';
+    }
+  });
+} catch(e) {
+  console.warn('[Paddle] Init failed:', e);
+}
+
+function startCheckout(plan) {
+  _pendingPlan = plan;
+  openAuth('signup');
+}
+
+function _launchPaddle(user) {
+  const priceId = paddleConfig.prices[_pendingPlan];
+  const isPlaceholder = !priceId || priceId.startsWith('pri_YOUR');
+  if (isPlaceholder) {
+    console.warn('[Paddle] Replace placeholder price IDs in paddleConfig.');
+    window.location.href = '/dashboard';
+    return;
+  }
+  try {
+    Paddle.Checkout.open({
+      items: [{ priceId, quantity: 1 }],
+      customer: { email: user.email },
+      customData: { userId: user.id, plan: _pendingPlan }
+    });
+  } catch(e) {
+    console.error('[Paddle] Checkout error', e);
+    window.location.href = '/dashboard';
+  }
+}
+
+// Called after every successful auth action
+function _afterAuth(user) {
+  if (_pendingPlan) {
+    _launchPaddle(user);
+  } else {
+    window.location.href = '/dashboard';
+  }
+}
+
+// ── Supabase Config ────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://nuzomybeezzxykarlsei.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_GjM2jbO95xKcFnQ-MwKABA_YIpS-7eS';
+window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── Auth State ─────────────────────────────────────────────────────────────────
+(async function() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    // If we were redirected here because of a missing paid plan, don't loop back.
+    if (new URLSearchParams(location.search).get('upgrade') === '1') {
+      // Stay on landing — show the logged-in nav so they can sign out or upgrade.
+      document.getElementById('navAuthOut').classList.add('hidden');
+      const navIn = document.getElementById('navAuthIn');
+      navIn.classList.remove('hidden');
+      navIn.classList.add('flex');
+      const av = document.getElementById('navAvatar');
+      if (av) {
+        const ini = (session.user.email || '?').slice(0, 2).toUpperCase();
+        av.textContent = ini;
+      }
+      const nm = document.getElementById('userMenuName');
+      if (nm) nm.textContent = session.user.email;
+      return;
+    }
+    // Already logged in — go straight to the dashboard (it decides whether
+    // onboarding still needs to happen first).
+    window.location.href = '/dashboard';
+    return;
+  }
+  // Not logged in — show the normal landing UI
+  document.getElementById('navAuthOut').classList.remove('hidden');
+  document.getElementById('navAuthIn').classList.add('hidden');
+})();
+
+function authError(error) {
+  console.error('[Supabase auth error]', error);
+  return error?.message || 'Something went wrong. Please try again.';
+}
+
+// ── Sign In ────────────────────────────────────────────────────────────────────
+async function doSignIn(e) {
+  e.preventDefault();
+  const btn = document.getElementById('signinBtn');
+  btn.textContent = 'Signing in…'; btn.disabled = true;
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: document.getElementById('siEmail').value.trim(),
+    password: document.getElementById('siPassword').value,
+  });
+  if (error) {
+    showAuthMsg(authError(error));
+    btn.textContent = 'Sign In'; btn.disabled = false;
+    return;
+  }
+  _afterAuth(data.user);
+}
+
+// ── Sign Up ────────────────────────────────────────────────────────────────────
+async function doSignUp(e) {
+  e.preventDefault();
+  const btn         = document.getElementById('signupBtn');
+  const firstName   = document.getElementById('suFirst').value.trim();
+  const lastName    = document.getElementById('suLast').value.trim();
+  const email       = document.getElementById('suEmail').value.trim();
+  const company     = document.getElementById('suCompany').value.trim();
+  const password    = document.getElementById('suPassword').value;
+  const displayName = `${firstName} ${lastName}`.trim();
+  btn.textContent = 'Creating account…'; btn.disabled = true;
+  const { data, error } = await sb.auth.signUp({
+    email, password,
+    options: { data: { display_name: displayName, company: company || null } },
+  });
+  if (error) {
+    showAuthMsg(authError(error));
+    btn.textContent = 'Create Free Account'; btn.disabled = false;
+    return;
+  }
+  if (!data.session) {
+    showAuthMsg('Check your email to confirm your account, then sign in.', 'success');
+    btn.textContent = 'Create Free Account'; btn.disabled = false;
+    return;
+  }
+  _afterAuth(data.user);
+}
+
+// ── Google Sign-In ─────────────────────────────────────────────────────────────
+// Requires the Google provider to be enabled under Supabase → Authentication → Providers.
+async function doGoogleSignIn() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + '/dashboard' },
+  });
+  if (error) showAuthMsg(authError(error));
+}
+
+// ── Sign Out ───────────────────────────────────────────────────────────────────
+async function doSignOut() {
+  await sb.auth.signOut();
+  document.getElementById('userMenu').classList.add('hidden');
+  showToast('Signed out.');
+}
+
+// ── Hero email → sign-up ───────────────────────────────────────────────────────
+async function heroSignup() {
+  const emailEl = document.getElementById('heroEmail');
+  const email   = emailEl.value.trim();
+  if (!email || !email.includes('@')) { emailEl.focus(); return; }
+  emailEl.value = '';
+  openAuth('signup');
+  document.getElementById('suEmail').value = email;
+}
+
+// ── Auth modal helpers ─────────────────────────────────────────────────────────
+function openAuth(tab = 'signup') {
+  const m = document.getElementById('authModal');
+  m.classList.remove('hidden'); m.classList.add('flex');
+  switchAuthTab(tab); clearAuthMsg();
+}
+function closeAuth() {
+  const m = document.getElementById('authModal');
+  m.classList.add('hidden'); m.classList.remove('flex');
+  clearAuthMsg();
+  const sib = document.getElementById('signinBtn'); sib.textContent = 'Sign In'; sib.disabled = false;
+  const sub = document.getElementById('signupBtn'); sub.textContent = 'Create Free Account'; sub.disabled = false;
+}
+function switchAuthTab(tab) {
+  clearAuthMsg();
+  const si = document.getElementById('signinForm');
+  const su = document.getElementById('signupForm');
+  const tSI = document.getElementById('tabSignin');
+  const tSU = document.getElementById('tabSignup');
+  if (tab === 'signin') {
+    si.classList.remove('hidden'); su.classList.add('hidden');
+    tSI.classList.add('active','text-brand'); tSI.classList.remove('text-on-surface-var');
+    tSU.classList.remove('active','text-brand'); tSU.classList.add('text-on-surface-var');
+  } else {
+    su.classList.remove('hidden'); si.classList.add('hidden');
+    tSU.classList.add('active','text-brand'); tSU.classList.remove('text-on-surface-var');
+    tSI.classList.remove('active','text-brand'); tSI.classList.add('text-on-surface-var');
+  }
+}
+function showAuthMsg(msg, type = 'error') {
+  const el = document.getElementById('authMsg');
+  el.className = type === 'error'
+    ? 'mb-4 p-3 rounded-xl text-[14px] font-medium bg-red-50 text-red-600 border border-red-200'
+    : 'mb-4 p-3 rounded-xl text-[14px] font-medium bg-green-50 text-green-700 border border-green-200';
+  el.textContent = msg; el.classList.remove('hidden');
+}
+function clearAuthMsg() { document.getElementById('authMsg').classList.add('hidden'); }
+
+// ── Nav helpers ────────────────────────────────────────────────────────────────
+function toggleMobileMenu() { document.getElementById('mobileMenu').classList.toggle('hidden'); }
+function closeMobileMenu()  { document.getElementById('mobileMenu').classList.add('hidden'); }
+function toggleUserMenu()   { document.getElementById('userMenu').classList.toggle('hidden'); }
+document.addEventListener('click', e => {
+  const av = document.getElementById('navAvatar');
+  const um = document.getElementById('userMenu');
+  if (um && av && !av.contains(e.target) && !um.contains(e.target)) um.classList.add('hidden');
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAuth(); });
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+let _toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.remove('hidden');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+
+// ── Scroll reveal ──────────────────────────────────────────────────────────────
+const revObs = new IntersectionObserver(entries => {
+  entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add('visible'); revObs.unobserve(en.target); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -32px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revObs.observe(el));
+
+// Redirect from dashboard when no paid plan
+if (new URLSearchParams(location.search).get('upgrade') === '1') {
+  setTimeout(function() {
+    document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' });
+    showToast('A paid plan is required to access the dashboard. Choose a plan below.');
+  }, 600);
+}
+</script></body></html>

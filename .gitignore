@@ -6,7 +6,6 @@ __pycache__/
 *.pyc
 enrichment.db
 frontend/node_modules/
-frontend/dist/
 frontend/.astro/
 .claude/
 uvicorn_out.log

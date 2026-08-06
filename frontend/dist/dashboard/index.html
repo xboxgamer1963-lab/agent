@@ -1,0 +1,1156 @@
+<!DOCTYPE html><html class="light" lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><title>InsightEngine | AI Account Researcher</title><!-- Supabase auth + onboarding guard --><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
+(function() {
+  var SUPABASE_URL = 'https://nuzomybeezzxykarlsei.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_GjM2jbO95xKcFnQ-MwKABA_YIpS-7eS';
+  window.sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // apiFetch attaches the current session's bearer token to every API call.
+  window.apiFetch = async function(url, options) {
+    options = options || {};
+    var { data: { session } } = await window.sb.auth.getSession();
+    var headers = Object.assign({}, options.headers || {});
+    if (session) headers['Authorization'] = 'Bearer ' + session.access_token;
+    return fetch(url, Object.assign({}, options, { headers: headers }));
+  };
+
+  async function guard() {
+    var { data: { session } } = await window.sb.auth.getSession();
+    if (!session) { window.location.replace('/'); return; }
+    try {
+      var res = await window.apiFetch('/api/profile');
+      var profile = await res.json();
+      if (!profile.onboarding_completed) { window.location.replace('/onboarding'); return; }
+    } catch (e) {
+      // If the profile check fails, don't hard-lock the user out — fall through.
+    }
+    var g = document.getElementById('_authGuard');
+    if (g) g.style.display = 'none';
+    window._currentUser = session.user;
+    var av = document.getElementById('headerAvatar');
+    var nm = document.getElementById('headerUserName');
+    if (av) av.textContent = (session.user.email || '?').slice(0, 2).toUpperCase();
+    if (nm) nm.textContent = session.user.email || 'User';
+  }
+  document.addEventListener('DOMContentLoaded', guard);
+})();
+</script><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"><script id="tailwind-config">
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: '#0f7c41',
+        'brand-dark': '#0c6335',
+        accent: '#245fc1',
+        surface: '#f5f6ff',
+        'on-surface': '#171717',
+        'on-surface-var': '#393939',
+        'on-surface-mute': '#6F6F6F',
+        'outline-var': '#EDEDED',
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      }
+    }
+  }
+}
+</script><style>body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  .insight-card { border-left: 4px solid #0f7c41; transition: transform 0.15s ease; }
+  .insight-card:hover { transform: translateX(3px); }
+  .kpi-card { transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
+  .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(15,23,42,0.08); border-color: rgba(15,124,65,0.35); }
+  .legend-item { transition: opacity 0.15s ease; cursor: pointer; }
+  .legend-item:hover { opacity: 0.65; }
+  .settings-tone-chip { transition: all 0.15s; }
+  .settings-tone-chip.selected { background: #0f7c41; color: #fff; border-color: #0f7c41; }
+  .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #EDEDED transparent; }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: #EDEDED; border-radius: 10px; }
+  @keyframes marquee { 0% { transform:translateX(0); } 100% { transform:translateX(-50%); } }
+  .tab-btn {
+    padding: 10px 16px; font-size: 12px; font-family: 'JetBrains Mono', monospace;
+    font-weight: 600; letter-spacing: 0.05em; color: #6F6F6F;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    background: none; border-top: none; border-left: none; border-right: none;
+    cursor: pointer;
+  }
+  .tab-btn.active { color: #245fc1; border-bottom-color: #245fc1; }
+  .tab-btn:hover:not(.active) { color: #171717; }
+  .acct-row { cursor:pointer; transition: background 0.1s; }
+  .acct-row:hover td { background: #f5f6ff; }
+  .acct-row.selected td { background: #f5f6ff; box-shadow: inset 3px 0 0 #0f7c41; }
+  .status-dot { width:7px; height:7px; border-radius:9999px; display:inline-block; flex-shrink:0; }
+  .dot-pending { background:#c6c6cd; }
+  .dot-running { background:#245fc1; animation: pulse 1.4s ease-in-out infinite; }
+  .dot-enriched { background:#16a34a; }
+  .dot-dropped { background:#6F6F6F; }
+  .dot-error { background:#dc2626; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .action-chip { transition: opacity 0.15s, transform 0.1s; }
+  .action-chip:hover { opacity:0.85; transform:scale(0.97); }
+  .ring-fg { stroke-linecap: round; transition: stroke-dashoffset 0.7s cubic-bezier(0.16,1,0.3,1); }
+  #chatModal { display:none; }
+  #chatModal.open { display:flex; }
+  .nav-link { text-decoration: none; }
+  code, .font-mono { font-family: 'JetBrains Mono', monospace; }</style></head><body class="bg-surface text-on-surface overflow-hidden h-screen flex"><!-- Auth guard overlay — hidden once Firebase confirms the user is signed in --><div id="_authGuard" style="position:fixed;inset:0;z-index:9999;background:#f5f6ff;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;"><div style="width:44px;height:44px;border-radius:12px;background:#0f7c41;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined" style="color:#fff;font-size:22px;font-variation-settings:'FILL' 1">analytics</span></div><p style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#393939;letter-spacing:0.08em;">Checking authentication…</p></div><!-- =========================================================
+     SIDE NAV (fixed 280px)
+     ========================================================= --><aside class="fixed left-0 top-0 h-full w-[280px] bg-white border-r border-outline-var flex flex-col p-4 gap-2 z-50 shrink-0"><div class="flex items-center gap-3 px-2 mb-6"><div class="w-10 h-10 rounded-xl bg-brand flex items-center justify-center text-white shadow-sm shrink-0"><span class="material-symbols-outlined text-[22px]" style="font-variation-settings:'FILL' 1;">analytics</span></div><div><h1 class="text-[17px] font-black leading-tight tracking-tight"><span class="text-brand">Insight</span><span class="text-on-surface">Engine</span></h1><p class="text-[11px] font-mono font-medium text-on-surface-mute tracking-wide">AI Account Researcher</p></div></div><nav class="flex-1 flex flex-col gap-1"><a href="#" onclick="showView('analytics');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-var hover:bg-outline-var transition-all rounded-xl" id="navAnalytics"><span class="material-symbols-outlined text-[22px]">bar_chart</span><span class="text-[12px] font-mono font-semibold tracking-wide">Analytics</span></a><a href="#" onclick="showView('setup');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-var hover:bg-outline-var transition-all rounded-xl" id="navSetup"><span class="material-symbols-outlined text-[22px]">rocket_launch</span><span class="text-[12px] font-mono font-semibold tracking-wide">Pipeline</span></a><a href="#" onclick="showView('dashboard');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-var hover:bg-outline-var transition-all rounded-xl" id="navDashboard"><span class="material-symbols-outlined text-[22px]">business_center</span><span class="text-[12px] font-mono font-semibold tracking-wide">Accounts</span></a><a href="#" onclick="showView('intelligence');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-var hover:bg-outline-var transition-all rounded-xl" id="navIntelligence"><span class="material-symbols-outlined text-[22px]">psychology</span><span class="text-[12px] font-mono font-semibold tracking-wide">Intelligence</span></a><a href="#" onclick="showView('stakeholders');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-var hover:bg-outline-var transition-all rounded-xl" id="navStakeholders"><span class="material-symbols-outlined text-[22px]">hub</span><span class="text-[12px] font-mono font-semibold tracking-wide">Stakeholders</span></a><a href="#" onclick="showView('library');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-var hover:bg-outline-var transition-all rounded-xl" id="navLibrary"><span class="material-symbols-outlined text-[22px]">folder_shared</span><span class="text-[12px] font-mono font-semibold tracking-wide">Library</span></a></nav><div class="mt-auto flex flex-col gap-1"><div class="bg-outline-var p-4 rounded-xl mb-2"><p class="text-[12px] font-mono font-semibold text-on-surface mb-2">Pipeline Health</p><div class="w-full bg-outline-var/30 h-1.5 rounded-full overflow-hidden"><div id="sidebarProgress" class="bg-accent h-full transition-all duration-700 rounded-full" style="width:0%"></div></div><p id="sidebarProgressLabel" class="text-[11px] font-mono text-on-surface-var mt-2">No active run</p></div><a href="#" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-var hover:bg-outline-var transition-all rounded-xl"><span class="material-symbols-outlined text-[22px]">help</span><span class="text-[12px] font-mono font-semibold tracking-wide">Help</span></a><a href="#" onclick="showView('settings');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-var hover:bg-outline-var transition-all rounded-xl" id="navSettings"><span class="material-symbols-outlined text-[22px]">settings</span><span class="text-[12px] font-mono font-semibold tracking-wide">Settings</span></a></div></aside><!-- =========================================================
+     MAIN COLUMN
+     ========================================================= --><div class="ml-[280px] flex-1 flex flex-col h-screen overflow-hidden"><!-- TOP NAV BAR --><header class="sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-outline-var/30 flex justify-between items-center w-full px-10 h-16 shrink-0"><div class="flex items-center gap-6"><span class="text-[20px] font-black tracking-tight"><span class="text-brand">Insight</span><span class="text-on-surface">Engine</span></span><span id="runStatusPill" class="hidden px-3 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-outline-var text-on-surface-var">idle</span><span id="batchLabel" class="text-[12px] font-mono text-on-surface-var hidden"></span><span id="runIdLabel" class="text-[12px] font-mono text-on-surface-var/50 hidden"></span></div><div class="flex items-center gap-3"><button id="cancelBtn" onclick="cancelRun()" class="hidden px-4 py-2 border border-red-300 text-red-600 rounded-xl text-[12px] font-mono font-semibold hover:bg-red-50 transition-colors">Cancel Run</button><button class="p-2 text-on-surface-var hover:text-on-surface transition-colors rounded-lg hover:bg-outline-var"><span class="material-symbols-outlined">notifications</span></button><div class="relative group"><div id="headerAvatar" class="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white font-bold text-xs cursor-pointer select-none">?</div><div class="hidden group-hover:flex absolute right-0 top-10 flex-col bg-white border border-outline-var/30 rounded-2xl shadow-xl p-2 min-w-[200px] z-50"><p id="headerUserName" class="px-4 py-2 text-[12px] font-semibold text-on-surface border-b border-outline-var/20 mb-1 truncate">User</p><a href="/" class="flex items-center gap-2 px-4 py-2.5 text-[13px] text-on-surface hover:bg-surface rounded-xl transition-colors"><span class="material-symbols-outlined text-[16px] text-on-surface-var">home</span>Landing Page</a><button onclick="window.sb.auth.signOut().then(()=&gt;window.location.replace('/'))" class="flex items-center gap-2 px-4 py-2.5 text-[13px] text-on-surface hover:bg-surface rounded-xl transition-colors text-left w-full"><span class="material-symbols-outlined text-[16px] text-on-surface-var">logout</span>Sign Out</button></div></div></div></header><!-- SCROLLABLE CONTENT --><main id="mainScroll" class="flex-1 overflow-y-auto custom-scrollbar bg-surface"><!-- =====================================================
+         ANALYTICS PANEL
+         ===================================================== --><section id="analyticsPanel" class="hidden p-10 space-y-6"><div><h1 class="text-[22px] font-bold text-on-surface">Analytics</h1><p class="text-[13px] text-on-surface-var mt-1">All-time performance across every enrichment run.</p></div><!-- KPI cards --><div class="grid grid-cols-2 lg:grid-cols-5 gap-4"><div onclick="goToAccounts()" class="kpi-card group bg-white border border-outline-var rounded-2xl p-6 cursor-pointer"><div class="flex items-center justify-between mb-4"><span class="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center"><span class="material-symbols-outlined text-accent text-[20px]">business_center</span></span><span class="material-symbols-outlined text-on-surface-mute text-[18px] opacity-0 group-hover:opacity-100 transition-opacity">arrow_outward</span></div><p class="text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide mb-1.5">Total Accounts</p><p id="statTotal" class="text-[34px] font-black text-on-surface leading-none">—</p></div><div onclick="showView('setup')" class="kpi-card group bg-white border border-outline-var rounded-2xl p-6 cursor-pointer"><div class="flex items-center justify-between mb-4"><span class="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center"><span class="material-symbols-outlined text-brand text-[20px]">rocket_launch</span></span><span class="material-symbols-outlined text-on-surface-mute text-[18px] opacity-0 group-hover:opacity-100 transition-opacity">arrow_outward</span></div><p class="text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide mb-1.5">Total Runs</p><p id="statRuns" class="text-[34px] font-black text-on-surface leading-none">—</p></div><div onclick="goToAccounts()" class="kpi-card group bg-white border border-outline-var rounded-2xl p-6 cursor-pointer"><div class="flex items-center justify-between mb-4"><span class="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center"><span class="material-symbols-outlined text-accent text-[20px]">grade</span></span><span class="material-symbols-outlined text-on-surface-mute text-[18px] opacity-0 group-hover:opacity-100 transition-opacity">arrow_outward</span></div><p class="text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide mb-1.5">Average Score</p><p id="statAvgScore" class="text-[34px] font-black text-on-surface leading-none">—</p></div><div onclick="goToAccounts('enriched')" class="kpi-card group bg-white border border-outline-var rounded-2xl p-6 cursor-pointer"><div class="flex items-center justify-between mb-4"><span class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center"><span class="material-symbols-outlined text-green-700 text-[20px]">check_circle</span></span><span class="material-symbols-outlined text-on-surface-mute text-[18px] opacity-0 group-hover:opacity-100 transition-opacity">arrow_outward</span></div><p class="text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide mb-1.5">Enriched</p><p id="statEnriched" class="text-[34px] font-black text-green-600 leading-none">—</p></div><div onclick="goToAccounts('enriched')" class="kpi-card group bg-white border border-outline-var rounded-2xl p-6 cursor-pointer"><div class="flex items-center justify-between mb-4"><span class="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center"><span class="material-symbols-outlined text-brand text-[20px]">trending_up</span></span><span class="material-symbols-outlined text-on-surface-mute text-[18px] opacity-0 group-hover:opacity-100 transition-opacity">arrow_outward</span></div><p class="text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide mb-1.5">Qualification Rate</p><p id="statQualRate" class="text-[34px] font-black text-brand leading-none">—</p></div></div><div class="grid lg:grid-cols-2 gap-4"><!-- Status breakdown --><div class="bg-white border border-outline-var rounded-2xl p-6"><p class="text-[13px] font-bold text-on-surface mb-4">Status Breakdown</p><div id="statusBar" class="w-full h-3 rounded-full overflow-hidden flex bg-outline-var"></div><div id="statusLegend" class="flex flex-wrap gap-x-5 gap-y-2 mt-4"></div></div><!-- Score distribution --><div class="bg-white border border-outline-var rounded-2xl p-6"><p class="text-[13px] font-bold text-on-surface mb-1">Score Distribution</p><p class="text-[12px] text-on-surface-mute mb-4">How every scored account landed on the 1–10 fit scale.</p><svg id="scoreChart" viewBox="0 0 400 150" style="width:100%;height:150px;display:block;"></svg><div class="flex items-center gap-4 mt-2"><span class="flex items-center gap-1.5 text-[11px] text-on-surface-var"><span class="w-2.5 h-2.5 rounded-full bg-brand shrink-0"></span>Qualified (≥7)</span><span class="flex items-center gap-1.5 text-[11px] text-on-surface-var"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:#c6c6cd"></span>Below threshold</span></div></div></div><!-- Recent runs --><div class="bg-white border border-outline-var rounded-2xl overflow-hidden"><div class="flex items-center justify-between px-6 py-4 border-b border-outline-var"><p class="text-[13px] font-bold text-on-surface">Recent Runs</p><button onclick="showView('setup')" class="text-[12px] font-semibold text-accent hover:underline">Start a new run</button></div><div id="recentRunsList"></div></div></section><!-- /analyticsPanel --><!-- =====================================================
+         SETUP PANEL
+         ===================================================== --><section id="setupPanel" class="hidden p-10 space-y-8"><!-- Page header --><div><div class="flex items-center gap-2 mb-2"><span class="flex items-center gap-1.5 px-2.5 py-1 bg-brand/10 text-brand text-[11px] font-mono font-semibold rounded-full tracking-wide"><span class="w-1.5 h-1.5 rounded-full bg-brand" style="animation:pulse 1.5s ease-in-out infinite;"></span>AI PIPELINE</span><span class="text-[11px] font-mono text-on-surface-mute tracking-wide">8 SPECIALIST AGENTS · CLAUDE OPUS 4 · 5× CONCURRENT</span></div><h1 class="text-[24px] font-bold text-on-surface tracking-tight">Start Account Research</h1><p class="text-[14px] text-on-surface-var mt-1 max-w-2xl leading-relaxed">Eight named agents research each account, score fit, and push qualified accounts to Pipedrive with a full briefing.</p></div><!-- Configuration form --><div class="bg-white border border-outline-var rounded-2xl overflow-hidden"><div class="px-8 py-6 border-b border-outline-var"><h2 class="text-[17px] font-bold text-on-surface">Configure Run</h2><p class="text-[13px] text-on-surface-var mt-1">Point the pipeline at a data source and tell the agents what you're selling.</p></div><div class="p-8 space-y-8"><!-- Step 1: Data source --><div><div class="flex items-center gap-2 mb-4"><span class="w-5 h-5 rounded-full bg-accent/10 text-accent text-[11px] font-mono font-bold flex items-center justify-center shrink-0">1</span><span class="text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Data Source</span></div><div class="grid md:grid-cols-[1fr_auto_1fr] gap-4"><label class="block"><span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Google Sheet</span><input id="sheetId" type="text" placeholder="Sheet ID" class="w-full border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white transition-all"><p class="text-[12px] text-on-surface-mute mt-1.5">Leave empty to use the <code class="font-mono">.env</code> default. Needs <code class="font-mono">Name</code> and <code class="font-mono">Domain</code> columns.</p></label><div class="hidden md:flex flex-col items-center"><span class="w-px flex-1 bg-outline-var"></span><span class="py-2 text-[11px] font-mono font-semibold text-on-surface-mute">OR</span><span class="w-px flex-1 bg-outline-var"></span></div><label class="block"><span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Manual Domain List</span><textarea id="manualDomains" rows="3" placeholder="acme.com&#10;Acme Inc, acme.com" class="w-full border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white resize-none transition-all"></textarea><div class="flex items-center gap-2 mt-2"><button type="button" onclick="document.getElementById('csvUpload').click()" class="flex items-center gap-1.5 px-3 py-1.5 border border-outline-var rounded-lg text-[12px] font-semibold text-on-surface-var hover:bg-surface transition-colors"><span class="material-symbols-outlined text-[16px]">upload_file</span> Upload CSV</button><span id="csvFileName" class="text-[12px] text-on-surface-mute"></span><input id="csvUpload" type="file" accept=".csv,text/csv" class="hidden" onchange="handleCsvUpload(event)"></div><p class="text-[12px] text-on-surface-mute mt-1.5">One per line, or upload a CSV with Name/Domain columns. Takes priority over the Google Sheet if filled in.</p></label></div></div><!-- Step 2: Value proposition --><div><div class="flex items-center gap-2 mb-4"><span class="w-5 h-5 rounded-full bg-accent/10 text-accent text-[11px] font-mono font-bold flex items-center justify-center shrink-0">2</span><span class="text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Value Proposition</span><span class="text-red-500 text-[13px]">*</span></div><textarea id="valueProp" rows="3" placeholder="e.g. Fleet Telematics — real-time driver coaching for fleets under CSA / insurance pressure." class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white resize-none transition-all"></textarea><p class="text-[12px] text-on-surface-mute mt-1.5">What you sell and who it's for — every account is scored against this.</p></div><p id="setupError" class="text-red-600 text-[13px] font-medium"></p><!-- Actions --><div class="flex items-center gap-3 pt-6 border-t border-outline-var"><button onclick="startRun()" class="action-chip flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-xl text-[13px] font-semibold shadow-sm"><span class="material-symbols-outlined text-[18px]">rocket_launch</span> Start Pipeline</button><button onclick="previewSheet()" class="flex items-center gap-2 px-6 py-3 border border-outline-var text-on-surface rounded-xl text-[13px] font-semibold hover:bg-surface transition-colors"><span class="material-symbols-outlined text-[18px]">preview</span> Preview Sheet</button></div><div id="previewBox" class="hidden bg-surface rounded-xl p-6 overflow-auto max-h-64 custom-scrollbar"></div></div></div><!-- Agent crew strip --><div><p class="text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide mb-3">Agent Crew</p><div class="flex flex-wrap gap-2"><span class="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-white border border-outline-var rounded-full"><span class="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-accent text-[14px]">travel_explore</span></span><span class="text-[12px] font-semibold text-on-surface">Atlas</span><span class="text-[11px] text-on-surface-mute">Web research</span></span><span class="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-white border border-outline-var rounded-full"><span class="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-accent text-[14px]">hearing</span></span><span class="text-[12px] font-semibold text-on-surface">Echo</span><span class="text-[11px] text-on-surface-mute">News scanning</span></span><span class="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-white border border-outline-var rounded-full"><span class="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-accent text-[14px]">group</span></span><span class="text-[12px] font-semibold text-on-surface">Talent</span><span class="text-[11px] text-on-surface-mute">LinkedIn intel</span></span><span class="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-white border border-outline-var rounded-full"><span class="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-accent text-[14px]">grade</span></span><span class="text-[12px] font-semibold text-on-surface">Oracle</span><span class="text-[11px] text-on-surface-mute">Evaluation</span></span><span class="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-white border border-outline-var rounded-full"><span class="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-accent text-[14px]">manage_search</span></span><span class="text-[12px] font-semibold text-on-surface">Pitch</span><span class="text-[11px] text-on-surface-mute">Search commands</span></span><span class="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-white border border-outline-var rounded-full"><span class="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-accent text-[14px]">hub</span></span><span class="text-[12px] font-semibold text-on-surface">Hunter</span><span class="text-[11px] text-on-surface-mute">Contact mapping</span></span><span class="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-white border border-outline-var rounded-full"><span class="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-accent text-[14px]">article</span></span><span class="text-[12px] font-semibold text-on-surface">Scribe</span><span class="text-[11px] text-on-surface-mute">Dossier writing</span></span><span class="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-white border border-outline-var rounded-full"><span class="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-accent text-[14px]">sync_alt</span></span><span class="text-[12px] font-semibold text-on-surface">Ledger</span><span class="text-[11px] text-on-surface-mute">Pipedrive sync</span></span></div></div></section><!-- /setupPanel --><!-- =====================================================
+         DASHBOARD PANEL
+         ===================================================== --><section id="dashboardPanel" class="hidden p-10 space-y-4"><!-- Toolbar --><div class="flex items-center justify-between flex-wrap gap-3"><div class="flex items-center gap-3"><h1 class="text-[22px] font-bold text-on-surface">Accounts</h1><span id="progressPct" class="text-[12px] font-mono text-on-surface-mute"></span></div><div class="flex items-center gap-2 flex-wrap"><span class="px-2.5 py-1 bg-surface text-on-surface-var rounded-full text-[11px] font-mono font-semibold">Pending <b id="cntPending">0</b></span><span class="px-2.5 py-1 bg-accent/10 text-accent rounded-full text-[11px] font-mono font-semibold">Running <b id="cntRunning">0</b></span><span class="px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-[11px] font-mono font-semibold">Enriched <b id="cntEnriched">0</b></span><span class="px-2.5 py-1 bg-surface text-on-surface-var rounded-full text-[11px] font-mono font-semibold">Dropped <b id="cntDropped">0</b></span><span class="px-2.5 py-1 bg-red-50 text-red-700 rounded-full text-[11px] font-mono font-semibold">Error <b id="cntError">0</b></span></div></div><div class="w-full bg-outline-var h-1 rounded-full overflow-hidden"><div id="progressBar" class="bg-accent h-full transition-all duration-700 rounded-full" style="width:0%"></div></div><!-- Account table --><div class="bg-white border border-outline-var rounded-2xl overflow-hidden"><div class="flex items-center justify-between px-5 py-3 border-b border-outline-var gap-3"><div class="flex items-center gap-2 flex-1"><div class="relative flex-1 max-w-xs"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-mute text-[18px]">search</span><input id="acctSearch" type="text" placeholder="Search accounts…" oninput="filterAccounts()" class="w-full pl-9 pr-3 py-2 border border-outline-var rounded-lg text-[13px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-surface transition-all"></div><span id="statusFilterChip" class="hidden items-center gap-1.5 pl-3 pr-1.5 py-1.5 bg-accent/10 text-accent rounded-full text-[12px] font-semibold"></span></div><span id="acctCount" class="text-[11px] font-mono text-on-surface-mute shrink-0"></span></div><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b border-outline-var"><th class="py-3 px-5 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Account</th><th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Status</th><th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide text-right">Score</th><th class="py-3 px-5 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide text-right">Updated</th></tr></thead><tbody id="accountList" class="divide-y divide-outline-var"></tbody></table><div id="acctEmpty" class="hidden p-10 text-center text-on-surface-mute text-[14px]">No accounts yet.</div></div></div></section><!-- /dashboardPanel --><!-- =====================================================
+         COMING SOON PANEL (Intelligence / Stakeholders / Library)
+         ===================================================== --><section id="comingSoonPanel" class="hidden p-10 flex items-center justify-center" style="min-height: calc(100vh - 64px);"><div class="text-center max-w-md"><div class="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6"><span id="comingSoonIcon" class="material-symbols-outlined text-accent text-[40px]">construction</span></div><h2 id="comingSoonTitle" class="text-[28px] font-black text-on-surface mb-3"></h2><p class="text-[15px] text-on-surface-var leading-relaxed">This section is being built. Run the pipeline first — accounts you enrich will populate views here.</p><button onclick="showView('setup')" class="mt-8 px-6 py-3 bg-brand text-white rounded-xl text-[13px] font-semibold">Go to Pipeline</button></div></section><!-- =====================================================
+         SETTINGS PANEL
+         ===================================================== --><section id="settingsPanel" class="hidden p-10 space-y-6 max-w-3xl"><div><h1 class="text-[22px] font-bold text-on-surface">Settings</h1><p class="text-[13px] text-on-surface-var mt-1">The preferences you set during onboarding — change them any time.</p></div><div class="bg-white border border-outline-var rounded-2xl overflow-hidden"><div class="px-8 py-6 border-b border-outline-var"><p class="text-[13px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">About You</p></div><div class="p-8 grid sm:grid-cols-2 gap-5"><label class="block"><span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Your Role</span><input id="s_role" type="text" class="w-full border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white transition-all"></label><label class="block"><span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Company</span><input id="s_company" type="text" class="w-full border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white transition-all"></label><label class="block sm:col-span-2"><span class="text-[13px] font-semibold text-on-surface mb-1.5 block">How did you hear about us?</span><select id="s_referral" class="w-full border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white transition-all"><option value="">Select one…</option><option>Search engine</option><option>Twitter / X</option><option>LinkedIn</option><option>Referral from a friend or colleague</option><option>Product Hunt</option><option>Podcast / YouTube</option><option>Other</option></select></label></div></div><div class="bg-white border border-outline-var rounded-2xl overflow-hidden"><div class="px-8 py-6 border-b border-outline-var"><p class="text-[13px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Your Market</p></div><div class="p-8 space-y-5"><div class="grid sm:grid-cols-2 gap-5"><label class="block"><span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Industry</span><input id="s_industry" type="text" class="w-full border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white transition-all"></label><label class="block"><span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Target Market</span><input id="s_target_market" type="text" class="w-full border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white transition-all"></label></div><label class="block"><span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Audience</span><input id="s_audience" type="text" class="w-full border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white transition-all"></label><label class="block"><span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Ideal Customer Profile (ICP)</span><textarea id="s_icp" rows="3" class="w-full border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white resize-none transition-all"></textarea><p class="text-[12px] text-on-surface-mute mt-1.5">Used as the default starting point for the Value Proposition on new runs.</p></label></div></div><div class="bg-white border border-outline-var rounded-2xl overflow-hidden"><div class="px-8 py-6 border-b border-outline-var"><p class="text-[13px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Targeting &amp; Scoring</p></div><div class="p-8 space-y-5"><label class="block"><span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Target Roles</span><input id="s_target_roles" type="text" class="w-full border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white transition-all"></label><label class="block"><span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Minimum score to consider an account "good"</span><div class="flex items-center gap-4"><input id="s_good_score" type="range" min="1" max="10" value="7" class="flex-1"><span id="s_good_score_label" class="w-12 text-center text-[16px] font-black text-brand">7/10</span></div><p class="text-[12px] text-on-surface-mute mt-1.5">Accounts scoring below this are dropped instead of shipped to Pipedrive.</p></label><label class="block"><span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Tone of voice</span><div class="flex flex-wrap gap-2" id="s_toneChips"><span class="settings-tone-chip px-4 py-2 rounded-full border border-outline-var text-[13px] font-semibold cursor-pointer" data-tone="professional" onclick="selectSettingsTone(this)">Professional</span><span class="settings-tone-chip px-4 py-2 rounded-full border border-outline-var text-[13px] font-semibold cursor-pointer" data-tone="direct" onclick="selectSettingsTone(this)">Direct</span><span class="settings-tone-chip px-4 py-2 rounded-full border border-outline-var text-[13px] font-semibold cursor-pointer" data-tone="casual" onclick="selectSettingsTone(this)">Casual</span><span class="settings-tone-chip px-4 py-2 rounded-full border border-outline-var text-[13px] font-semibold cursor-pointer" data-tone="consultative" onclick="selectSettingsTone(this)">Consultative</span><span class="settings-tone-chip px-4 py-2 rounded-full border border-outline-var text-[13px] font-semibold cursor-pointer" data-tone="enthusiastic" onclick="selectSettingsTone(this)">Enthusiastic</span></div></label></div></div><div class="flex items-center gap-3"><button onclick="saveSettings()" id="saveSettingsBtn" class="px-6 py-3 bg-brand text-white rounded-xl text-[13px] font-semibold shadow-sm hover:bg-brand-dark transition-colors">Save Changes</button><span id="settingsSaved" class="hidden text-[13px] font-semibold text-green-600 flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">check_circle</span> Saved</span><span id="settingsError" class="text-red-600 text-[13px] font-medium"></span></div></section><!-- =====================================================
+         INTELLIGENCE PANEL
+         ===================================================== --><section id="intelligencePanel" class="hidden p-10 space-y-4"><div><h1 class="text-[22px] font-bold text-on-surface">Intelligence</h1><p class="text-[13px] text-on-surface-var mt-1">Every hypothesis the agents have generated — export any of them as a PDF briefing.</p></div><div class="bg-white border border-outline-var rounded-2xl overflow-hidden"><table class="w-full text-left"><thead><tr class="border-b border-outline-var"><th class="py-3 px-5 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Account</th><th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Angle</th><th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide text-right">Score</th><th class="py-3 px-5 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide text-right">Export</th></tr></thead><tbody id="intelligenceList" class="divide-y divide-outline-var"></tbody></table><div id="intelligenceEmpty" class="hidden p-10 text-center text-on-surface-mute text-[14px]">No hypotheses generated yet — run the pipeline first.</div></div></section><!-- =====================================================
+         STAKEHOLDERS PANEL
+         ===================================================== --><section id="stakeholdersPanel" class="hidden p-10 space-y-4"><div><h1 class="text-[22px] font-bold text-on-surface">Stakeholders</h1><p class="text-[13px] text-on-surface-var mt-1">Recommended decision-maker titles per account, from the LinkedIn search agent.</p></div><div class="bg-white border border-outline-var rounded-2xl overflow-hidden"><table class="w-full text-left"><thead><tr class="border-b border-outline-var"><th class="py-3 px-5 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Account</th><th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Recommended Titles</th><th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide text-right">Score</th></tr></thead><tbody id="stakeholdersList" class="divide-y divide-outline-var"></tbody></table><div id="stakeholdersEmpty" class="hidden p-10 text-center text-on-surface-mute text-[14px]">No recommended titles yet — qualifying accounts generate a LinkedIn search with target titles.</div></div></section><!-- =====================================================
+         LIBRARY PANEL (expanded accounts view)
+         ===================================================== --><section id="libraryPanel" class="hidden p-10 space-y-4"><div><h1 class="text-[22px] font-bold text-on-surface">Library</h1><p class="text-[13px] text-on-surface-var mt-1">Every account on record, with the full picture in one row.</p></div><div class="bg-white border border-outline-var rounded-2xl overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b border-outline-var"><th class="py-3 px-5 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Account</th><th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Status</th><th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide text-right">Score</th><th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Angle</th><th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Key Insight</th><th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Pipedrive</th><th class="py-3 px-5 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide text-right">Updated</th></tr></thead><tbody id="libraryList" class="divide-y divide-outline-var"></tbody></table><div id="libraryEmpty" class="hidden p-10 text-center text-on-surface-mute text-[14px]">No accounts yet.</div></div></section></main></div><!-- =========================================================
+     ACCOUNT DETAIL DRAWER
+     ========================================================= --><div id="detailBackdrop" onclick="closeDetail()" class="hidden fixed inset-0 bg-black/20 z-40"></div><div id="accountDetailSection" class="fixed top-0 right-0 h-full w-full sm:w-[640px] bg-surface border-l border-outline-var shadow-2xl z-50 translate-x-full transition-transform duration-300 overflow-y-auto custom-scrollbar"><div class="sticky top-0 bg-white border-b border-outline-var px-6 py-4 flex items-center justify-between z-10"><span class="text-[12px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Account Detail</span><button onclick="closeDetail()" class="p-1.5 hover:bg-outline-var rounded-full transition-colors text-on-surface-var"><span class="material-symbols-outlined text-[20px]">close</span></button></div><div class="p-6 space-y-5"><!-- Empty state (should rarely be visible — drawer only opens on row select) --><div id="detailEmpty" class="bg-white border border-outline-var rounded-2xl p-10 text-center"><p class="text-[14px] text-on-surface-var">Select an account to view its intelligence profile.</p></div><!-- Intelligence Profile (hidden until account selected) --><div id="detailContent" class="hidden space-y-5"><!-- Hero: Executive Summary --><div class="insight-card bg-white border border-outline-var p-6 rounded-2xl relative overflow-hidden"><div class="flex items-center gap-2 mb-4 flex-wrap"><span id="heroAiTag" class="flex items-center gap-1.5 px-3 py-1 bg-brand/10 text-brand text-[11px] font-mono font-semibold rounded-full tracking-wide"><span class="w-1.5 h-1.5 rounded-full bg-brand" style="animation:pulse 1.5s ease-in-out infinite;"></span><span class="material-symbols-outlined text-[13px]">auto_awesome</span> AI SYNTHESIS</span><span id="heroStatusTag" class="hidden flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-[11px] font-mono font-semibold rounded-full">HIGH INTENT</span></div><div class="space-y-3 relative z-10"><h1 id="heroName" class="text-[24px] font-black text-on-surface leading-tight tracking-tight"></h1><p id="heroSummary" class="text-[14px] text-on-surface-var leading-relaxed"></p><div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1"><div class="p-3 bg-surface rounded-xl border border-outline-var"><p class="text-[10px] font-mono text-on-surface-mute mb-1 tracking-wide">KEY ANGLE</p><p id="heroAngle" class="text-[13px] font-semibold text-on-surface leading-snug">—</p></div><div class="p-3 bg-surface rounded-xl border border-outline-var"><p class="text-[10px] font-mono text-on-surface-mute mb-1 tracking-wide">FIT SCORE</p><p id="heroScore" class="text-[13px] font-semibold text-on-surface">—</p></div><div class="p-3 bg-surface rounded-xl border border-outline-var"><p class="text-[10px] font-mono text-on-surface-mute mb-1 tracking-wide">NEXT ACTION</p><p id="heroNextAction" class="text-[13px] font-semibold text-on-surface">—</p></div></div></div><!-- Live agent log marquee (shown when running) --><div id="heroMarqueeWrap" class="hidden mt-4 pt-3 border-t border-outline-var flex items-center gap-4 overflow-hidden relative z-10"><span class="text-[11px] font-mono font-bold text-accent flex-shrink-0 tracking-wide">LIVE:</span><div id="heroMarquee" class="flex gap-10 whitespace-nowrap" style="animation:marquee 22s linear infinite;"></div></div></div><!-- Tabs --><div class="bg-white border border-outline-var rounded-2xl overflow-hidden"><div class="flex border-b border-outline-var px-4 overflow-x-auto"><button class="tab-btn active" onclick="switchTab('overview',this)">Overview</button><button class="tab-btn" onclick="switchTab('evaluation',this)">Evaluation</button><button class="tab-btn" onclick="switchTab('search',this)">Search Commands</button><button class="tab-btn" onclick="switchTab('pipedrive',this)">Pipedrive</button></div><!-- OVERVIEW TAB --><div id="tab-overview" class="tab-content p-5 space-y-6"><div id="hypothesisSection"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-accent text-[20px]" style="font-variation-settings:'FILL' 1;">lightbulb</span><h3 class="text-[16px] font-bold text-on-surface">Hypothesis</h3></div><div id="hypothesisContent" class="space-y-3"></div></div><div id="newsSection"><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-accent text-[20px]">newspaper</span><h3 class="text-[16px] font-bold text-on-surface">Intelligence Feed</h3></div><div id="newsContent" class="space-y-3"></div></div><div><div class="flex items-center gap-2 mb-3"><span class="material-symbols-outlined text-accent text-[20px]">group</span><h3 class="text-[16px] font-bold text-on-surface">LinkedIn Signals</h3></div><div id="linkedinContent" class="space-y-2"></div></div></div><!-- EVALUATION TAB --><div id="tab-evaluation" class="tab-content p-5 hidden space-y-6"><div><p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-3">Evaluation — Pass 1</p><div id="eval1Content"></div></div><div><p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-3">Evaluation — Pass 2 (Retry)</p><div id="eval2Content"></div></div><div class="rounded-2xl p-6" style="background:linear-gradient(135deg,#0f7c41,#12934d 60%,#206eef)"><div class="flex items-center gap-3 mb-4"><span class="material-symbols-outlined text-white/70 text-[20px]">mail</span><h3 class="text-[16px] font-bold text-white">Recommended Outreach</h3></div><div id="talkingPointsContent"></div></div></div><!-- SEARCH COMMANDS TAB --><div id="tab-search" class="tab-content p-5 hidden"><div class="flex items-center gap-3 mb-4"><span class="material-symbols-outlined text-accent text-[20px]">manage_search</span><h3 class="text-[16px] font-bold text-on-surface">LinkedIn Sales Navigator</h3></div><div id="searchContent"></div></div><!-- PIPEDRIVE TAB --><div id="tab-pipedrive" class="tab-content p-5 hidden"><div id="pipedriveContent"></div></div></div></div><!-- /detailContent --></div></div><!-- /accountDetailSection --><!-- =========================================================
+     AI FAB
+     ========================================================= --><button onclick="openChat()" class="fixed bottom-10 right-10 bg-accent text-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2 group z-50"><span class="material-symbols-outlined group-hover:rotate-12 transition-transform text-[20px]">auto_awesome</span><span class="text-[15px] font-semibold">Ask InsightEngine</span></button><!-- =========================================================
+     CHAT MODAL
+     ========================================================= --><div id="chatModal" class="fixed inset-0 z-50 items-end justify-end p-6 pointer-events-none"><div class="pointer-events-auto w-[440px] bg-white border border-outline-var/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden" style="height:600px;"><div class="flex items-center gap-3 px-6 py-4 border-b border-outline-var/20 bg-surface/70 backdrop-blur-sm shrink-0"><div class="w-9 h-9 rounded-xl bg-accent flex items-center justify-center text-white shrink-0"><span class="material-symbols-outlined text-[20px]">smart_toy</span></div><div><p class="text-[16px] font-semibold text-on-surface leading-tight">Orchestrator</p><p class="text-[11px] font-mono text-on-surface-var">8 agents · ready</p></div><button onclick="closeChat()" class="ml-auto p-1 hover:bg-outline-var rounded-full transition-colors text-on-surface-var"><span class="material-symbols-outlined">close</span></button></div><div id="chatScroll" class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-3"></div><div class="flex flex-wrap gap-2 px-5 pt-2 pb-1 shrink-0"><button class="action-chip px-3 py-1 bg-outline-var border border-outline-var/30 rounded-full text-[11px] font-mono text-on-surface-var" onclick="sendQuickChat('start a run')">start a run</button><button class="action-chip px-3 py-1 bg-outline-var border border-outline-var/30 rounded-full text-[11px] font-mono text-on-surface-var" onclick="sendQuickChat('status')">status</button><button class="action-chip px-3 py-1 bg-outline-var border border-outline-var/30 rounded-full text-[11px] font-mono text-on-surface-var" onclick="sendQuickChat('preview the sheet')">preview sheet</button><button class="action-chip px-3 py-1 bg-outline-var border border-outline-var/30 rounded-full text-[11px] font-mono text-on-surface-var" onclick="sendQuickChat('help')">help</button></div><div class="px-5 pb-5 pt-2 flex gap-2 shrink-0"><input id="chatInput" type="text" placeholder="Ask anything…" class="flex-1 border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white" onkeydown="if(event.key==='Enter')sendChat()"><button onclick="sendChat()" class="action-chip px-4 py-2.5 bg-accent text-white rounded-xl"><span class="material-symbols-outlined text-[18px]">send</span></button></div></div></div><!-- =========================================================
+     JAVASCRIPT
+     ========================================================= --><script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentRunId = null;
+let pollInterval = null;
+let selectedAccountId = null;
+
+// ── Navigation ─────────────────────────────────────────────────────────────────
+const NAV_MAP = {
+  analytics:    'navAnalytics',
+  setup:        'navSetup',
+  dashboard:    'navDashboard',
+  intelligence: 'navIntelligence',
+  stakeholders: 'navStakeholders',
+  library:      'navLibrary',
+  settings:     'navSettings',
+};
+
+const COMING_SOON = {};
+
+function showView(view) {
+  const isComingSoon = view in COMING_SOON;
+  document.getElementById('analyticsPanel').classList.toggle('hidden', view !== 'analytics');
+  document.getElementById('setupPanel').classList.toggle('hidden', view !== 'setup');
+  document.getElementById('dashboardPanel').classList.toggle('hidden', view !== 'dashboard');
+  document.getElementById('settingsPanel').classList.toggle('hidden', view !== 'settings');
+  document.getElementById('intelligencePanel').classList.toggle('hidden', view !== 'intelligence');
+  document.getElementById('stakeholdersPanel').classList.toggle('hidden', view !== 'stakeholders');
+  document.getElementById('libraryPanel').classList.toggle('hidden', view !== 'library');
+  const csPanel = document.getElementById('comingSoonPanel');
+  csPanel.classList.toggle('hidden', !isComingSoon);
+  if (isComingSoon) {
+    document.getElementById('comingSoonIcon').textContent = COMING_SOON[view].icon;
+    document.getElementById('comingSoonTitle').textContent = COMING_SOON[view].title;
+  }
+  if (view === 'analytics') loadAnalytics();
+  if (view === 'settings') loadSettings();
+  if (view === 'intelligence') renderIntelligence();
+  if (view === 'stakeholders') renderStakeholders();
+  if (view === 'library') renderLibrary();
+
+  // Update sidebar active state
+  const activeClasses = ['bg-accent/30', 'text-accent'];
+  const inactiveClasses = ['text-on-surface-var', 'hover:bg-outline-var'];
+  Object.entries(NAV_MAP).forEach(([v, id]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (v === view) {
+      el.classList.remove(...inactiveClasses);
+      el.classList.add(...activeClasses);
+      // Switch icon to filled
+      const icon = el.querySelector('.material-symbols-outlined');
+      if (icon) icon.style.fontVariationSettings = "'FILL' 1";
+    } else {
+      el.classList.remove(...activeClasses);
+      el.classList.add(...inactiveClasses);
+      const icon = el.querySelector('.material-symbols-outlined');
+      if (icon) icon.style.fontVariationSettings = "'FILL' 0";
+    }
+  });
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+async function loadAnalytics() {
+  try {
+    const s = await apiFetch('/api/analytics').then(r => r.json());
+    document.getElementById('statTotal').textContent = s.total;
+    document.getElementById('statAvgScore').textContent = s.avg_score != null ? s.avg_score.toFixed(1) : '—';
+    document.getElementById('statEnriched').textContent = s.enriched;
+    const qualRate = s.total ? Math.round(s.enriched / s.total * 100) : 0;
+    document.getElementById('statQualRate').textContent = qualRate + '%';
+    document.getElementById('statRuns').textContent = s.total_runs;
+
+    const segments = [
+      { key: 'enriched', label: 'Enriched', color: '#16a34a', value: s.enriched },
+      { key: 'running',  label: 'Running',  color: '#245fc1', value: s.running },
+      { key: 'pending',  label: 'Pending',  color: '#c6c6cd', value: s.pending },
+      { key: 'dropped',  label: 'Dropped',  color: '#6F6F6F', value: s.dropped },
+      { key: 'error',    label: 'Error',    color: '#dc2626', value: s.error },
+    ];
+    const total = s.total || 1;
+    document.getElementById('statusBar').innerHTML = segments
+      .filter(seg => seg.value > 0)
+      .map(seg => `<div style="width:${(seg.value / total * 100)}%;background:${seg.color}"></div>`)
+      .join('');
+    document.getElementById('statusLegend').innerHTML = segments.map(seg => `
+      <span class="legend-item flex items-center gap-1.5 text-[12px] text-on-surface-var" onclick="goToAccounts('${seg.key}')"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${seg.color}"></span>${seg.label} <b class="text-on-surface">${seg.value}</b></span>`
+    ).join('');
+
+    renderScoreChart(s.score_histogram || {});
+  } catch (e) { /* leave placeholders on failure */ }
+  loadRecentRuns();
+}
+
+function renderScoreChart(histogram) {
+  const svg = document.getElementById('scoreChart');
+  const scores = Array.from({ length: 10 }, (_, i) => i + 1);
+  const counts = scores.map(sc => histogram[sc] || 0);
+  const max = Math.max(1, ...counts);
+  const W = 400, H = 150, padBottom = 22, padTop = 16, gap = 4;
+  const barW = (W / scores.length) - gap;
+  let marks = '';
+  scores.forEach((sc, i) => {
+    const c = counts[i];
+    const barH = c > 0 ? Math.max((c / max) * (H - padBottom - padTop), 3) : 0;
+    const x = i * (barW + gap) + gap / 2;
+    const y = H - padBottom - barH;
+    const color = sc >= 7 ? '#0f7c41' : '#c6c6cd';
+    if (c > 0) {
+      marks += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${color}"><title>Score ${sc}: ${c} account${c === 1 ? '' : 's'}</title></rect>`;
+      marks += `<text x="${x + barW / 2}" y="${y - 5}" text-anchor="middle" font-size="10" font-family="JetBrains Mono, monospace" fill="#393939">${c}</text>`;
+    }
+    marks += `<text x="${x + barW / 2}" y="${H - 6}" text-anchor="middle" font-size="10" font-family="JetBrains Mono, monospace" fill="#6F6F6F">${sc}</text>`;
+  });
+  svg.innerHTML = marks;
+}
+
+async function loadRecentRuns() {
+  const list = document.getElementById('recentRunsList');
+  try {
+    const runs = await apiFetch('/api/runs?limit=8').then(r => r.json());
+    if (!runs.length) {
+      list.innerHTML = '<p class="p-8 text-center text-[13px] text-on-surface-mute">No runs yet — start your first pipeline run.</p>';
+      return;
+    }
+    const statusColor = {
+      pending: 'bg-outline-var text-on-surface-var',
+      running: 'bg-accent/10 text-accent',
+      completed: 'bg-green-100 text-green-700',
+      cancelled: 'bg-red-50 text-red-700',
+      error: 'bg-red-50 text-red-700',
+    };
+    list.innerHTML = `<div class="divide-y divide-outline-var">` + runs.map(r => `
+      <div class="flex items-center justify-between gap-4 px-6 py-3.5 hover:bg-surface transition-colors cursor-pointer" onclick="goToAccounts(null, ${r.id})">
+        <div class="min-w-0 flex-1">
+          <p class="text-[13px] font-semibold text-on-surface truncate">${escHtml(r.value_prop || '—')}</p>
+          <p class="text-[11px] font-mono text-on-surface-mute mt-0.5">Run #${r.id} · ${escHtml(r.sheet_id || '—')} · ${timeAgo(r.created_at)}</p>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <span class="text-[11px] font-mono text-on-surface-var">${r.done || 0}/${r.total || 0}</span>
+          <span class="px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold ${statusColor[r.status] || statusColor.pending}">${r.status}</span>
+        </div>
+      </div>`).join('') + `</div>`;
+  } catch (e) {
+    list.innerHTML = '<p class="p-8 text-center text-[13px] text-on-surface-mute">Couldn\'t load runs.</p>';
+  }
+}
+
+async function loadAllAccounts() {
+  try {
+    const accounts = await apiFetch('/api/accounts').then(r => r.json());
+    updateAccountList(accounts);
+  } catch (e) { /* leave whatever's already loaded */ }
+}
+
+// ── Cross-view navigation ─────────────────────────────────────────────────────
+let statusFilter = null;
+let runFilter = null;
+
+function goToAccounts(status, runId) {
+  statusFilter = status || null;
+  runFilter = runId || null;
+  showView('dashboard');
+  renderAccountRows(filteredAccounts());
+}
+
+function clearStatusFilter() {
+  statusFilter = null;
+  runFilter = null;
+  renderAccountRows(filteredAccounts());
+}
+
+// ── Chat ───────────────────────────────────────────────────────────────────────
+function openChat() { document.getElementById('chatModal').classList.add('open'); }
+function closeChat() { document.getElementById('chatModal').classList.remove('open'); }
+function sendQuickChat(msg) { document.getElementById('chatInput').value = msg; sendChat(); }
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  appendChatMsg('user', msg);
+  handleChatCommand(msg.toLowerCase());
+}
+
+function appendChatMsg(role, text, isHtml) {
+  const scroll = document.getElementById('chatScroll');
+  const div = document.createElement('div');
+  div.className = 'flex gap-2 ' + (role === 'user' ? 'justify-end' : 'justify-start');
+  const bub = role === 'user'
+    ? 'bg-accent/10 border border-accent/20 text-on-surface rounded-xl rounded-tr-sm'
+    : 'bg-outline-var border border-outline-var/20 text-on-surface rounded-xl rounded-tl-sm';
+  div.innerHTML = (role !== 'user'
+    ? '<div class="w-7 h-7 rounded-lg bg-accent flex items-center justify-center text-white text-[10px] font-bold shrink-0 mt-0.5">AI</div>'
+    : '')
+    + `<div class="max-w-[80%] px-4 py-2.5 ${bub} text-[14px] leading-relaxed">${isHtml ? text : escHtml(text)}</div>`
+    + (role === 'user'
+    ? '<div class="w-7 h-7 rounded-lg bg-outline-var flex items-center justify-center text-on-surface-var text-[10px] font-bold shrink-0 mt-0.5">YOU</div>'
+    : '');
+  scroll.appendChild(div);
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+function handleChatCommand(cmd) {
+  if (cmd.includes('start') || cmd.includes('run')) {
+    appendChatMsg('agent', 'Opening pipeline setup. Fill in the Sheet ID and value prop, then click <b>Start Pipeline</b>.', true);
+    closeChat(); showView('setup');
+  } else if (cmd.includes('status')) {
+    if (currentRunId) {
+      apiFetch(`/api/runs/${currentRunId}`).then(r => r.json()).then(run => {
+        appendChatMsg('agent', `Run #${run.id}: <b>${run.status}</b> — ${run.done}/${run.total} accounts. Enriched: ${run.enriched}, Dropped: ${run.dropped}, Errors: ${run.errors}.`, true);
+      }).catch(() => appendChatMsg('agent', `Run #${currentRunId} is active. Check the dashboard for live status.`));
+    } else {
+      appendChatMsg('agent', 'No active run. Say <b>start a run</b> to begin.', true);
+    }
+  } else if (cmd.includes('preview') || cmd.includes('sheet')) {
+    appendChatMsg('agent', 'Opening setup panel. Click <b>Preview Sheet</b> to see your accounts.', true);
+    closeChat(); showView('setup');
+  } else if (cmd.includes('cancel')) {
+    cancelRun();
+    appendChatMsg('agent', 'Cancellation request sent.');
+  } else if (cmd.includes('help')) {
+    appendChatMsg('agent', 'Commands: <b>start a run</b> · <b>status</b> · <b>preview sheet</b> · <b>cancel</b>', true);
+  } else {
+    appendChatMsg('agent', 'I\'m your AI orchestrator. Try: <b>start a run</b>, <b>status</b>, or <b>help</b>.', true);
+  }
+}
+
+// ── Setup Panel ───────────────────────────────────────────────────────────────
+function parseManualDomains(raw) {
+  return raw.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+    const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, '')).filter(Boolean);
+    if (parts.length >= 2) return { name: parts[0], domain: parts[1] };
+    return { name: parts[0], domain: parts[0] };
+  });
+}
+
+function handleCsvUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  document.getElementById('csvFileName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let lines = String(reader.result).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length && /^\s*name\s*,/i.test(lines[0])) lines = lines.slice(1); // drop header row
+    document.getElementById('manualDomains').value = lines.join('\n');
+  };
+  reader.onerror = () => {
+    document.getElementById('csvFileName').textContent = 'Could not read that file.';
+  };
+  reader.readAsText(file);
+}
+
+async function startRun() {
+  const sheetId = document.getElementById('sheetId').value.trim();
+  const valueProp = document.getElementById('valueProp').value.trim();
+  const manualRaw = document.getElementById('manualDomains').value.trim();
+  const errEl = document.getElementById('setupError');
+  errEl.textContent = '';
+  if (!valueProp) { errEl.textContent = 'Value proposition is required.'; return; }
+  const accounts = manualRaw ? parseManualDomains(manualRaw) : null;
+  if (manualRaw && accounts.length === 0) { errEl.textContent = 'Enter at least one domain.'; return; }
+  try {
+    const res = await apiFetch('/api/runs', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ sheet_id: sheetId || null, value_prop: valueProp, accounts })
+    });
+    if (!res.ok) { const e = await res.json(); errEl.textContent = e.detail || 'Failed to start.'; return; }
+    const data = await res.json();
+    currentRunId = data.run_id;
+    showView('dashboard');
+    setRunStatusPill('running');
+    document.getElementById('cancelBtn').classList.remove('hidden');
+    document.getElementById('batchLabel').classList.remove('hidden');
+    document.getElementById('runIdLabel').classList.remove('hidden');
+    document.getElementById('runStatusPill').classList.remove('hidden');
+    startPolling(currentRunId);
+  } catch(e) { errEl.textContent = 'Network error: ' + e.message; }
+}
+
+async function previewSheet() {
+  const sheetId = document.getElementById('sheetId').value.trim();
+  const box = document.getElementById('previewBox');
+  box.classList.remove('hidden');
+  box.innerHTML = '<p class="text-[14px] text-on-surface-var">Loading…</p>';
+  try {
+    const url = '/api/sheets/preview' + (sheetId ? `?sheet_id=${encodeURIComponent(sheetId)}` : '');
+    const res = await apiFetch(url);
+    if (!res.ok) { const e = await res.json(); box.textContent = e.detail; return; }
+    const data = await res.json();
+    box.innerHTML = `<p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-3">${data.total} accounts</p>
+      <table class="w-full text-left">
+        <thead><tr class="border-b border-outline-var/20">
+          <th class="pb-2 text-[11px] font-mono text-on-surface-var px-2">Name</th>
+          <th class="pb-2 text-[11px] font-mono text-on-surface-var px-2">Domain</th>
+        </tr></thead>
+        <tbody class="divide-y divide-outline-var/10">
+          ${data.preview.map(a => `<tr>
+            <td class="py-2 px-2 text-[14px] text-on-surface">${escHtml(a.name)}</td>
+            <td class="py-2 px-2 text-[14px] text-on-surface-var">${escHtml(a.domain||'—')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch(e) { box.textContent = 'Error: ' + e.message; }
+}
+
+async function cancelRun() {
+  if (!currentRunId) return;
+  await apiFetch(`/api/runs/${currentRunId}`, { method: 'DELETE' });
+  clearInterval(pollInterval); pollInterval = null;
+  setRunStatusPill('cancelled');
+  document.getElementById('cancelBtn').classList.add('hidden');
+}
+
+// ── Polling ───────────────────────────────────────────────────────────────────
+function startPolling(runId) {
+  if (pollInterval) clearInterval(pollInterval);
+  poll(runId);
+  pollInterval = setInterval(() => poll(runId), 3000);
+}
+
+async function poll(runId) {
+  try {
+    const [run, accounts] = await Promise.all([
+      apiFetch(`/api/runs/${runId}`).then(r => r.json()),
+      apiFetch(`/api/runs/${runId}/accounts`).then(r => r.json())
+    ]);
+    updateHeader(run);
+    updateProgress(run);
+    updateAccountList(accounts);
+    if (selectedAccountId) {
+      const [detail, logs] = await Promise.all([
+        apiFetch(`/api/accounts/${selectedAccountId}`).then(r => r.json()),
+        apiFetch(`/api/accounts/${selectedAccountId}/logs`).then(r => r.json())
+      ]);
+      updateDetailPanel(detail, logs);
+    }
+    if (run.status === 'completed' || run.status === 'cancelled') {
+      clearInterval(pollInterval); pollInterval = null;
+    }
+  } catch(e) { /* retry on next tick */ }
+}
+
+// ── Header + Progress ─────────────────────────────────────────────────────────
+function setRunStatusPill(status) {
+  const pill = document.getElementById('runStatusPill');
+  pill.classList.remove('hidden');
+  const map = {
+    idle: 'bg-outline-var text-on-surface-var',
+    running: 'bg-accent/10 text-accent',
+    completed: 'bg-green-100 text-green-700',
+    cancelled: 'bg-red-50 text-red-700',
+    error: 'bg-red-50 text-red-700'
+  };
+  pill.className = `px-3 py-0.5 rounded-full text-[11px] font-mono font-semibold ${map[status]||map.idle}`;
+  pill.textContent = status;
+}
+
+function updateHeader(run) {
+  setRunStatusPill(run.status);
+  document.getElementById('batchLabel').textContent = `${run.done} / ${run.total} accounts`;
+  document.getElementById('runIdLabel').textContent = `Run #${run.id}`;
+  const pct = run.total > 0 ? Math.round(run.done / run.total * 100) : 0;
+  document.getElementById('sidebarProgress').style.width = pct + '%';
+  document.getElementById('sidebarProgressLabel').textContent = `${pct}% · ${run.enriched} enriched`;
+  document.getElementById('cancelBtn').classList.toggle('hidden', run.status !== 'running');
+}
+
+function updateProgress(run) {
+  const pct = run.total > 0 ? Math.round(run.done / run.total * 100) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = `${run.done} / ${run.total} · ${pct}%`;
+  const running = Math.max(0, run.total - run.done - (run.enriched||0) - (run.dropped||0) - (run.errors||0));
+  document.getElementById('cntPending').textContent = Math.max(0, run.total - run.done);
+  document.getElementById('cntRunning').textContent = run.status === 'running' ? running : 0;
+  document.getElementById('cntEnriched').textContent = run.enriched || 0;
+  document.getElementById('cntDropped').textContent = run.dropped || 0;
+  document.getElementById('cntError').textContent = run.errors || 0;
+}
+
+// ── Account List ──────────────────────────────────────────────────────────────
+let allAccounts = [];
+
+function updateAccountList(accounts) {
+  allAccounts = accounts;
+  renderAccountRows(filteredAccounts());
+}
+
+function filteredAccounts() {
+  const q = (document.getElementById('acctSearch')?.value || '').trim().toLowerCase();
+  let result = allAccounts;
+  if (statusFilter) result = result.filter(a => a.status === statusFilter);
+  if (runFilter) result = result.filter(a => a.run_id === runFilter);
+  if (q) result = result.filter(a => (a.name||'').toLowerCase().includes(q) || (a.domain||'').toLowerCase().includes(q));
+  return result;
+}
+
+function filterAccounts() { renderAccountRows(filteredAccounts()); }
+
+function timeAgo(iso) {
+  if (!iso) return '—';
+  let d = new Date(iso);
+  if (isNaN(d.getTime())) d = new Date(iso.replace(' ', 'T') + 'Z');
+  if (isNaN(d.getTime())) return '—';
+  const diff = Math.max(0, (Date.now() - d.getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
+}
+
+function renderAccountRows(accounts) {
+  const tbody = document.getElementById('accountList');
+  document.getElementById('acctCount').textContent = allAccounts.length ? `${accounts.length} / ${allAccounts.length}` : '';
+  const chip = document.getElementById('statusFilterChip');
+  const chipParts = [];
+  if (runFilter) chipParts.push(`Run #${runFilter}`);
+  if (statusFilter) chipParts.push(statusFilter);
+  if (chipParts.length) {
+    chip.classList.remove('hidden'); chip.classList.add('flex');
+    chip.innerHTML = `${chipParts.join(' · ')} <button onclick="clearStatusFilter()" class="flex items-center justify-center w-4 h-4 rounded-full hover:bg-accent/20"><span class="material-symbols-outlined text-[14px]">close</span></button>`;
+  } else {
+    chip.classList.add('hidden'); chip.classList.remove('flex');
+    chip.innerHTML = '';
+  }
+  if (!accounts.length) {
+    document.getElementById('acctEmpty').classList.remove('hidden');
+    tbody.innerHTML = ''; return;
+  }
+  document.getElementById('acctEmpty').classList.add('hidden');
+  const dotCls = {pending:'dot-pending',running:'dot-running',enriched:'dot-enriched',dropped:'dot-dropped',error:'dot-error'};
+  const statusLabel = {pending:'Pending',running:'Analyzing',enriched:'Enriched',dropped:'Dropped',error:'Error'};
+  tbody.innerHTML = accounts.map(a => `
+    <tr class="acct-row${a.id === selectedAccountId ? ' selected' : ''}" onclick="selectAccount(${a.id})">
+      <td class="py-3 px-5">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center font-bold text-[11px] text-accent shrink-0">${initials(a.name)}</div>
+          <div>
+            <p class="text-[13px] font-semibold text-on-surface leading-tight">${escHtml(a.name)}</p>
+            <p class="text-[11px] font-mono text-on-surface-var">${escHtml(a.domain||'—')}</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-3">
+        <div class="flex items-center gap-1.5">
+          <span class="status-dot ${dotCls[a.status]||'dot-pending'}"></span>
+          <span class="text-[11px] font-mono">${statusLabel[a.status]||a.status}</span>
+        </div>
+      </td>
+      <td class="py-3 px-3 text-right">
+        ${a.score != null
+          ? `<span class="px-2 py-0.5 bg-accent/10 text-accent rounded text-[11px] font-mono font-bold">${a.score}/10</span>`
+          : '<span class="text-on-surface-var text-[11px] font-mono">—</span>'}
+      </td>
+      <td class="py-3 px-5 text-right text-[11px] font-mono text-on-surface-mute">${timeAgo(a.updated_at)}</td>
+    </tr>`).join('');
+}
+
+function closeDetail() {
+  selectedAccountId = null;
+  document.getElementById('accountDetailSection').classList.add('translate-x-full');
+  document.getElementById('detailBackdrop').classList.add('hidden');
+  document.querySelectorAll('.acct-row').forEach(r => r.classList.remove('selected'));
+}
+
+async function selectAccount(id) {
+  selectedAccountId = id;
+  document.getElementById('detailEmpty').classList.add('hidden');
+  document.getElementById('detailContent').classList.remove('hidden');
+  document.getElementById('accountDetailSection').classList.remove('translate-x-full');
+  document.getElementById('detailBackdrop').classList.remove('hidden');
+  try {
+    const [detail, logs] = await Promise.all([
+      apiFetch(`/api/accounts/${id}`).then(r => r.json()),
+      apiFetch(`/api/accounts/${id}/logs`).then(r => r.json())
+    ]);
+    updateDetailPanel(detail, logs);
+    document.querySelectorAll('.acct-row').forEach(r => r.classList.remove('selected'));
+    document.querySelectorAll('.acct-row').forEach(r => {
+      if (r.getAttribute('onclick') === `selectAccount(${id})`) r.classList.add('selected');
+    });
+  } catch(e) { console.error(e); }
+}
+
+// ── Detail Panel ──────────────────────────────────────────────────────────────
+function updateDetailPanel(account, logs) {
+  const hyp   = tryParse(account.hypothesis_1);
+  const hyp2  = tryParse(account.hypothesis_2);
+  const news  = tryParse(account.news);
+  const li    = tryParse(account.linkedin);
+  const eval1 = tryParse(account.eval_1);
+  const eval2 = tryParse(account.eval_2);
+  const search= tryParse(account.search_commands);
+  const dossier = tryParse(account.dossier);
+  const bestEval = eval2 || eval1;
+
+  // Hero
+  document.getElementById('heroName').textContent = account.name;
+  document.getElementById('heroSummary').textContent =
+    dossier?.summary || hyp?.hypothesis || (account.status === 'running' ? 'Agents are actively researching this account…' : 'No data yet.');
+  document.getElementById('heroAngle').textContent =
+    hyp?.angle || bestEval?.suggested_angle || '—';
+  document.getElementById('heroScore').textContent =
+    bestEval?.score != null ? `${bestEval.score}/10` : (account.status === 'running' ? 'Analyzing…' : '—');
+  document.getElementById('heroNextAction').textContent =
+    account.status === 'enriched' ? (account.pipedrive_org_id ? 'Synced to Pipedrive' : 'Review Dossier') :
+    account.status === 'dropped' ? 'Below threshold' :
+    account.status === 'running' ? 'In progress…' : '—';
+
+  const statusTag = document.getElementById('heroStatusTag');
+  if (bestEval?.score >= 7) {
+    statusTag.classList.remove('hidden'); statusTag.textContent = 'HIGH INTENT';
+    statusTag.className = 'flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-[11px] font-mono font-semibold rounded-full';
+  } else if (account.status === 'dropped') {
+    statusTag.classList.remove('hidden'); statusTag.textContent = 'DROPPED';
+    statusTag.className = 'flex items-center gap-1 px-3 py-1 bg-outline-var text-on-surface-var text-[11px] font-mono font-semibold rounded-full';
+  } else { statusTag.classList.add('hidden'); }
+
+  // Marquee
+  const marqWrap = document.getElementById('heroMarqueeWrap');
+  const marq = document.getElementById('heroMarquee');
+  const recent = logs.filter(l => l.step !== 'error').slice(-5);
+  if (account.status === 'running' && recent.length) {
+    marqWrap.classList.remove('hidden');
+    const items = [...recent, ...recent];
+    marq.innerHTML = items.map(l =>
+      `<span class="text-[11px] font-mono text-on-surface-var/70">[${escHtml(l.step)}] ${escHtml(l.message.substring(0,55))}…</span>`
+    ).join('');
+  } else { marqWrap.classList.add('hidden'); }
+
+  // Hypothesis
+  const hypEl = document.getElementById('hypothesisContent');
+  if (hyp) {
+    hypEl.innerHTML = renderHypothesisCard(hyp, 'Pass 1') + (hyp2 ? renderHypothesisCard(hyp2, 'Retry') : '');
+  } else { hypEl.innerHTML = pendingBlock(account.status === 'running' ? 'Generating hypothesis…' : 'No hypothesis data.'); }
+
+  // News
+  const newsEl = document.getElementById('newsContent');
+  if (news) { newsEl.innerHTML = renderNewsItems(news); }
+  else { newsEl.innerHTML = pendingBlock(account.status === 'running' ? 'Scouting news…' : 'No news data.'); }
+
+  // LinkedIn
+  const liEl = document.getElementById('linkedinContent');
+  liEl.innerHTML = li ? renderLinkedinSignals(li) : pendingBlock(account.status === 'running' ? 'Analyzing LinkedIn…' : 'No LinkedIn data.');
+
+  // Evaluation cards
+  renderEvalCard('eval1Content', eval1, account);
+  renderEvalCard('eval2Content', eval2, account);
+
+  // Talking points
+  const tpEl = document.getElementById('talkingPointsContent');
+  if (bestEval?.talking_points?.length) {
+    tpEl.innerHTML = `
+      <p class="text-[12px] font-mono text-white/60 italic mb-4">Opening angle: ${escHtml(bestEval.suggested_angle||'—')}</p>
+      <ul class="space-y-3 mb-6">
+        ${bestEval.talking_points.map(tp =>
+          `<li class="flex gap-3"><span class="text-white/70 mt-0.5">•</span><span class="text-[14px] text-white/80 leading-relaxed">${escHtml(tp)}</span></li>`
+        ).join('')}
+      </ul>
+      ${bestEval.fit_reasons?.length ? `
+        <div class="space-y-2">
+          <p class="text-[11px] font-mono font-semibold text-white/70 uppercase tracking-wide mb-2">Fit Evidence</p>
+          ${bestEval.fit_reasons.map(r => `
+            <div class="flex gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
+              <span class="text-white/70 shrink-0">→</span>
+              <span class="text-[14px] text-white/70">${escHtml(r)}</span>
+            </div>`).join('')}
+        </div>` : ''}`;
+  } else {
+    tpEl.innerHTML = `<p class="text-[14px] text-white/50 italic">${account.status === 'running' ? 'Generating talking points…' : 'No talking points.'}</p>`;
+  }
+
+  // Search commands
+  const searchEl = document.getElementById('searchContent');
+  if (search) {
+    searchEl.innerHTML = `
+      <div class="space-y-6">
+        ${search.target_titles?.length ? `
+          <div>
+            <p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-2">Target Titles</p>
+            <div class="flex flex-wrap gap-2">
+              ${search.target_titles.map(t => `<span class="px-3 py-1 bg-accent/10 text-accent rounded text-[11px] font-mono">${escHtml(t)}</span>`).join('')}
+            </div>
+          </div>` : ''}
+        ${search.why_these_titles ? `
+          <div class="p-4 bg-surface rounded-xl border border-outline-var/20">
+            <p class="text-[11px] font-mono font-semibold text-accent uppercase tracking-wide mb-1">Reasoning</p>
+            <p class="text-[14px] text-on-surface">${escHtml(search.why_these_titles)}</p>
+          </div>` : ''}
+        <div>
+          <p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-2">Primary Search</p>
+          ${codeBlock(search.primary_search||'—', 'BOOLEAN SEARCH')}
+        </div>
+        <div>
+          <p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-2">Backup Search</p>
+          ${codeBlock(search.backup_search||'—', 'BACKUP')}
+        </div>
+      </div>`;
+  } else {
+    searchEl.innerHTML = pendingBlock(account.status === 'running' || account.status === 'pending' ? 'Generating search commands…' : 'No search commands.');
+  }
+
+  // Pipedrive
+  const pdEl = document.getElementById('pipedriveContent');
+  if (dossier) {
+    pdEl.innerHTML = `
+      <div class="space-y-6">
+        ${account.pipedrive_org_id ? `
+          <div class="p-5 bg-green-50 border border-green-200 rounded-xl flex items-center gap-4">
+            <span class="material-symbols-outlined text-green-600 text-[28px]" style="font-variation-settings:'FILL' 1;">check_circle</span>
+            <div>
+              <p class="text-[13px] font-bold text-green-700">Synced to Pipedrive</p>
+              <p class="text-[12px] font-mono text-green-600">Org ID: ${escHtml(String(account.pipedrive_org_id))}</p>
+            </div>
+          </div>` : `
+          <div class="p-5 bg-surface border border-outline-var/30 rounded-xl">
+            <p class="text-[14px] text-on-surface-var">Pipedrive sync pending or account was dropped.</p>
+          </div>`}
+        ${dossier.tags?.length ? `
+          <div>
+            <p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-2">Tags</p>
+            <div class="flex flex-wrap gap-2">${dossier.tags.map(t => `<span class="px-3 py-1 bg-outline-var border border-outline-var/30 rounded text-[11px] font-mono text-on-surface-var">${escHtml(t)}</span>`).join('')}</div>
+          </div>` : ''}
+        ${dossier.key_insight ? `
+          <div class="insight-card p-5 bg-white/60 rounded-xl border border-outline-var/20">
+            <p class="text-[11px] font-mono font-semibold text-accent uppercase tracking-wide mb-2">Key Insight</p>
+            <p class="text-[14px] text-on-surface leading-relaxed">${escHtml(dossier.key_insight)}</p>
+          </div>` : ''}
+        <div>
+          <p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-2">Pipedrive Note Preview</p>
+          <pre class="bg-white border border-outline-var/30 rounded-xl p-5 text-[12px] font-mono text-on-surface overflow-x-auto whitespace-pre-wrap leading-relaxed">${escHtml(dossier.pipedrive_note||'—')}</pre>
+        </div>
+      </div>`;
+  } else {
+    pdEl.innerHTML = pendingBlock(account.status === 'running' || account.status === 'pending' ? 'Compiling dossier…' : 'No dossier data.');
+  }
+
+  // Log
+  const logEl = document.getElementById('logContent');
+  if (logs.length) { logEl.innerHTML = logs.map(renderLogEntry).join(''); }
+  else { logEl.innerHTML = '<p class="text-[14px] text-on-surface-var italic">No log entries yet.</p>'; }
+}
+
+// ── Render helpers ────────────────────────────────────────────────────────────
+function renderHypothesisCard(hyp, label) {
+  return `<div class="p-5 bg-white border border-outline-var/30 rounded-xl hover:bg-surface transition-colors mb-3">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="px-2 py-0.5 bg-accent/10 text-accent rounded text-[11px] font-mono font-semibold uppercase">${escHtml(label)}</span>
+      ${hyp.angle ? `<span class="text-[12px] font-mono font-bold text-accent">${escHtml(hyp.angle)}</span>` : ''}
+    </div>
+    <p class="text-[14px] text-on-surface leading-relaxed mb-2">${escHtml(hyp.hypothesis||'')}</p>
+    ${hyp.reasoning ? `<p class="text-[12px] font-mono text-on-surface-var italic">${escHtml(hyp.reasoning)}</p>` : ''}
+  </div>`;
+}
+
+function renderNewsItems(news) {
+  const items = [];
+  const iconMap = { funding:'trending_up', product_launch:'rocket_launch', exec_change:'person', growth_signal:'show_chart' };
+  if (news.headline)       items.push({icon:'newspaper',     label:'HEADLINE',   text:news.headline,       sentiment:'POSITIVE', sources:news.sources});
+  if (news.funding)        items.push({icon:'trending_up',   label:'FUNDING',    text:news.funding,        sentiment:'POSITIVE'});
+  if (news.product_launch) items.push({icon:'rocket_launch', label:'PRODUCT',    text:news.product_launch, sentiment:'POSITIVE'});
+  if (news.exec_change)    items.push({icon:'person',        label:'LEADERSHIP', text:news.exec_change,    sentiment:'NEUTRAL'});
+  if (news.growth_signal)  items.push({icon:'show_chart',    label:'GROWTH',     text:news.growth_signal,  sentiment:'POSITIVE'});
+  if (!items.length) return '<p class="text-[14px] text-on-surface-var italic">No news signals found.</p>';
+  const sentCls = {POSITIVE:'bg-green-100 text-green-700', NEUTRAL:'bg-outline-var text-on-surface-var', CAUTION:'bg-red-50 text-red-700'};
+  return items.map(it => `
+    <div class="flex gap-4 p-4 hover:bg-surface transition-colors rounded-xl border border-transparent hover:border-outline-var/20">
+      <div class="flex-shrink-0 w-11 h-11 bg-outline-var rounded-full flex items-center justify-center">
+        <span class="material-symbols-outlined text-accent text-[20px]">${it.icon}</span>
+      </div>
+      <div class="flex-grow space-y-1">
+        <div class="flex justify-between items-center gap-2">
+          <span class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide">${escHtml(it.label)}</span>
+          <span class="px-2 py-0.5 ${sentCls[it.sentiment]||sentCls.NEUTRAL} text-[11px] font-mono font-semibold rounded-full">${it.sentiment}</span>
+        </div>
+        <p class="text-[14px] text-on-surface leading-relaxed">${escHtml(it.text)}</p>
+        ${it.sources?.length ? `<div class="flex flex-wrap gap-2 mt-1">${it.sources.map(s => `<a href="${escHtml(s)}" target="_blank" rel="noopener" class="text-[11px] font-mono text-accent hover:underline truncate max-w-[180px]">${escHtml(s.replace(/^https?:\/\//,'').substring(0,36))}…</a>`).join('')}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function renderLinkedinSignals(li) {
+  let html = '';
+  if (li.team_growth) html += `<div class="p-3 bg-surface rounded-xl border border-outline-var/20 mb-2">
+    <p class="text-[11px] font-mono font-semibold text-accent uppercase tracking-wide mb-1">Team Growth</p>
+    <p class="text-[13px] text-on-surface">${escHtml(li.team_growth)}</p></div>`;
+  if (li.open_roles?.length) html += `<div class="mb-2">
+    <p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1">Open Roles</p>
+    <div class="flex flex-wrap gap-1">${li.open_roles.map(r => `<span class="px-2 py-0.5 bg-accent/10 text-accent rounded text-[11px] font-mono">${escHtml(r)}</span>`).join('')}</div></div>`;
+  if (li.pain_signals?.length) html += `<div class="mb-2">
+    <p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1">Pain Signals</p>
+    <ul class="space-y-1">${li.pain_signals.map(s => `<li class="flex gap-1.5 text-[12px] font-mono text-on-surface"><span class="text-accent">•</span>${escHtml(s)}</li>`).join('')}</ul></div>`;
+  if (li.likely_initiatives?.length) html += `<div>
+    <p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-1">Initiatives</p>
+    <ul class="space-y-1">${li.likely_initiatives.map(i => `<li class="flex gap-1.5 text-[12px] font-mono text-on-surface"><span class="text-accent">→</span>${escHtml(i)}</li>`).join('')}</ul></div>`;
+  return html || '<p class="text-[13px] text-on-surface-var italic">No LinkedIn signals yet.</p>';
+}
+
+function renderEvalCard(containerId, ev, account) {
+  const el = document.getElementById(containerId);
+  if (!ev) {
+    el.innerHTML = `<div class="p-5 bg-surface rounded-xl border border-outline-var/20">
+      <p class="text-[14px] text-on-surface-var italic">${account.status==='running'?'Evaluating…':'No evaluation data.'}</p></div>`;
+    return;
+  }
+  const circ = 2 * Math.PI * 32;
+  const offset = circ - ((ev.score / 10) * circ);
+  const scoreColor = ev.score >= 7 ? '#16a34a' : ev.score >= 5 ? '#245fc1' : '#dc2626';
+  el.innerHTML = `<div class="p-5 bg-white border border-outline-var/30 rounded-xl">
+    <div class="flex items-center gap-5 mb-4">
+      <div class="relative w-[76px] h-[76px] shrink-0">
+        <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg);display:block;">
+          <circle cx="38" cy="38" r="32" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="6"/>
+          <circle class="ring-fg" cx="38" cy="38" r="32" fill="none" stroke="${scoreColor}" stroke-width="6"
+            stroke-dasharray="${circ}" stroke-dashoffset="${offset}"/>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span class="text-[20px] font-black text-on-surface leading-none">${ev.score}</span>
+          <span class="text-[10px] font-mono text-on-surface-var">/10</span>
+        </div>
+      </div>
+      <div>
+        <div class="mb-1.5">${ev.relevant
+          ? '<span class="px-3 py-0.5 bg-green-100 text-green-700 rounded-full text-[11px] font-mono font-bold">QUALIFIED</span>'
+          : '<span class="px-3 py-0.5 bg-outline-var text-on-surface-var rounded-full text-[11px] font-mono font-bold">NOT QUALIFIED</span>'}</div>
+        <p class="text-[13px] text-on-surface leading-relaxed">${escHtml(ev.verdict||'')}</p>
+      </div>
+    </div>
+    ${ev.suggested_angle ? `<div class="p-3 bg-accent/5 border border-accent/10 rounded-xl">
+      <p class="text-[11px] font-mono font-semibold text-accent uppercase tracking-wide mb-1">Suggested Angle</p>
+      <p class="text-[13px] text-on-surface">${escHtml(ev.suggested_angle)}</p>
+    </div>` : ''}
+  </div>`;
+}
+
+function renderLogEntry(l) {
+  const icons = {hypothesise:'lightbulb',news:'newspaper',linkedin:'group',evaluate:'grade',retry:'refresh',save:'save',search_cmd:'manage_search',drop:'cancel',error:'error'};
+  const cols  = {hypothesise:'text-accent',news:'text-accent',linkedin:'text-accent',evaluate:'text-green-600',retry:'text-amber-600',save:'text-green-600',search_cmd:'text-accent',drop:'text-on-surface-var',error:'text-red-600'};
+  const time = new Date(l.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  return `<div class="flex gap-3">
+    <div class="flex-shrink-0 w-8 h-8 bg-outline-var rounded-full flex items-center justify-center">
+      <span class="material-symbols-outlined text-[15px] ${cols[l.step]||'text-on-surface-var'}">${icons[l.step]||'chevron_right'}</span>
+    </div>
+    <div class="flex-grow">
+      <div class="flex items-baseline gap-2 mb-0.5">
+        <span class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide">${escHtml(l.step)}</span>
+        <span class="text-[11px] font-mono text-on-surface-var/50">${time}</span>
+      </div>
+      <p class="text-[14px] text-on-surface leading-relaxed">${escHtml(l.message)}</p>
+    </div>
+  </div>`;
+}
+
+function codeBlock(text, label) {
+  const escaped = escHtml(text);
+  return `<div class="rounded-xl overflow-hidden border border-outline-var/30">
+    <div class="flex items-center justify-between px-5 py-2.5 bg-outline-var border-b border-outline-var/20">
+      <span class="text-[11px] font-mono font-semibold text-on-surface-var">${label}</span>
+      <button onclick="navigator.clipboard.writeText(${JSON.stringify(text)})" class="flex items-center gap-1 text-[11px] font-mono font-semibold text-accent hover:text-accent/80 transition-colors">
+        <span class="material-symbols-outlined text-[14px]">content_copy</span> Copy
+      </button>
+    </div>
+    <pre class="px-5 py-4 text-[12px] font-mono text-on-surface bg-white overflow-x-auto whitespace-pre-wrap leading-relaxed">${escaped}</pre>
+  </div>`;
+}
+
+function pendingBlock(msg) {
+  return `<div class="p-4 bg-surface rounded-xl border border-outline-var/20 flex items-center gap-3">
+    <span class="w-2 h-2 rounded-full bg-accent flex-shrink-0" style="animation:pulse 1.5s ease-in-out infinite;"></span>
+    <p class="text-[14px] text-on-surface-var italic">${msg}</p>
+  </div>`;
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.remove('hidden');
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function tryParse(val) {
+  if (!val) return null;
+  if (typeof val === 'object') return val;
+  try { return JSON.parse(val); } catch { return null; }
+}
+function initials(name) {
+  if (!name) return '?';
+  return name.split(/\s+/).slice(0,2).map(w => w[0]||'').join('').toUpperCase() || '?';
+}
+
+// ── Settings ───────────────────────────────────────────────────────────────────
+let settingsTone = 'professional';
+
+function selectSettingsTone(el) {
+  document.querySelectorAll('.settings-tone-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  settingsTone = el.dataset.tone;
+}
+
+async function loadSettings() {
+  document.getElementById('settingsError').textContent = '';
+  document.getElementById('settingsSaved').classList.add('hidden');
+  try {
+    const p = await apiFetch('/api/profile').then(r => r.json());
+    document.getElementById('s_role').value = p.role || '';
+    document.getElementById('s_company').value = p.company || '';
+    document.getElementById('s_referral').value = p.referral_source || '';
+    document.getElementById('s_industry').value = p.industry || '';
+    document.getElementById('s_target_market').value = p.target_market || '';
+    document.getElementById('s_audience').value = p.audience || '';
+    document.getElementById('s_icp').value = p.icp || '';
+    document.getElementById('s_target_roles').value = p.target_roles || '';
+    const score = p.good_score || 7;
+    document.getElementById('s_good_score').value = score;
+    document.getElementById('s_good_score_label').textContent = score + '/10';
+    settingsTone = p.tone || 'professional';
+    document.querySelectorAll('.settings-tone-chip').forEach(c => {
+      c.classList.toggle('selected', c.dataset.tone === settingsTone);
+    });
+  } catch (e) {
+    document.getElementById('settingsError').textContent = 'Could not load your settings.';
+  }
+}
+
+document.getElementById('s_good_score').addEventListener('input', (e) => {
+  document.getElementById('s_good_score_label').textContent = e.target.value + '/10';
+});
+
+async function saveSettings() {
+  const btn = document.getElementById('saveSettingsBtn');
+  const errEl = document.getElementById('settingsError');
+  const savedEl = document.getElementById('settingsSaved');
+  errEl.textContent = '';
+  savedEl.classList.add('hidden');
+  btn.disabled = true;
+  const body = {
+    role: document.getElementById('s_role').value.trim() || null,
+    company: document.getElementById('s_company').value.trim() || null,
+    referral_source: document.getElementById('s_referral').value || null,
+    industry: document.getElementById('s_industry').value.trim() || null,
+    target_market: document.getElementById('s_target_market').value.trim() || null,
+    audience: document.getElementById('s_audience').value.trim() || null,
+    icp: document.getElementById('s_icp').value.trim() || null,
+    target_roles: document.getElementById('s_target_roles').value.trim() || null,
+    good_score: parseInt(document.getElementById('s_good_score').value, 10) || 7,
+    tone: settingsTone,
+  };
+  try {
+    const res = await apiFetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      errEl.textContent = e.detail || 'Could not save your settings.';
+      btn.disabled = false;
+      return;
+    }
+    savedEl.classList.remove('hidden');
+    setTimeout(() => savedEl.classList.add('hidden'), 2500);
+  } catch (e) {
+    errEl.textContent = 'Network error: ' + e.message;
+  }
+  btn.disabled = false;
+}
+
+// ── Intelligence ───────────────────────────────────────────────────────────────
+function renderIntelligence() {
+  const withHypothesis = allAccounts.filter(a => a.angle);
+  const tbody = document.getElementById('intelligenceList');
+  const empty = document.getElementById('intelligenceEmpty');
+  if (!withHypothesis.length) { empty.classList.remove('hidden'); tbody.innerHTML = ''; return; }
+  empty.classList.add('hidden');
+  tbody.innerHTML = withHypothesis.map(a => `
+    <tr>
+      <td class="py-3 px-5">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center font-bold text-[11px] text-accent shrink-0">${initials(a.name)}</div>
+          <div>
+            <p class="text-[13px] font-semibold text-on-surface leading-tight">${escHtml(a.name)}</p>
+            <p class="text-[11px] font-mono text-on-surface-var">${escHtml(a.domain||'—')}</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-3 text-[13px] text-on-surface-var max-w-sm truncate">${escHtml(a.angle||'—')}</td>
+      <td class="py-3 px-3 text-right">
+        ${a.score != null ? `<span class="px-2 py-0.5 bg-accent/10 text-accent rounded text-[11px] font-mono font-bold">${a.score}/10</span>` : '<span class="text-on-surface-var text-[11px] font-mono">—</span>'}
+      </td>
+      <td class="py-3 px-5 text-right">
+        <button onclick="downloadHypothesisPDF(${a.id})" class="action-chip inline-flex items-center gap-1.5 px-3 py-1.5 border border-outline-var rounded-lg text-[12px] font-semibold text-on-surface-var hover:bg-surface transition-colors">
+          <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span> PDF
+        </button>
+      </td>
+    </tr>`).join('');
+}
+
+async function downloadHypothesisPDF(id) {
+  try {
+    const account = await apiFetch(`/api/accounts/${id}`).then(r => r.json());
+    const hyp = tryParse(account.hypothesis_2) || tryParse(account.hypothesis_1);
+    const ev = tryParse(account.eval_2) || tryParse(account.eval_1);
+    const dossier = tryParse(account.dossier);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    let y = 20;
+    doc.setFontSize(18); doc.setFont(undefined, 'bold');
+    doc.text(account.name || 'Account', 14, y); y += 8;
+    doc.setFontSize(10); doc.setFont(undefined, 'normal'); doc.setTextColor(120);
+    doc.text(account.domain || '', 14, y); y += 10;
+    doc.setTextColor(0);
+
+    function section(title, body) {
+      if (!body) return;
+      doc.setFontSize(12); doc.setFont(undefined, 'bold');
+      doc.text(title, 14, y); y += 6;
+      doc.setFontSize(10); doc.setFont(undefined, 'normal');
+      const lines = doc.splitTextToSize(String(body), 180);
+      doc.text(lines, 14, y);
+      y += lines.length * 5 + 6;
+    }
+
+    if (ev && ev.score != null) section('Fit Score', `${ev.score}/10 — ${ev.verdict || ''}`);
+    section('Hypothesis', hyp && hyp.hypothesis);
+    section('Angle', hyp && hyp.angle);
+    if (ev && ev.talking_points && ev.talking_points.length) {
+      section('Talking Points', ev.talking_points.map((t, i) => `${i + 1}. ${t}`).join('\n'));
+    }
+    if (ev && ev.fit_reasons && ev.fit_reasons.length) {
+      section('Fit Evidence', ev.fit_reasons.map(r => `• ${r}`).join('\n'));
+    }
+    if (dossier && dossier.summary) section('Executive Summary', dossier.summary);
+    if (dossier && dossier.key_insight) section('Key Insight', dossier.key_insight);
+
+    doc.save(`${(account.name || 'account').replace(/[^a-z0-9]+/gi, '-')}-hypothesis.pdf`);
+  } catch (e) {
+    alert('Could not generate PDF: ' + e.message);
+  }
+}
+
+// ── Stakeholders ───────────────────────────────────────────────────────────────
+function renderStakeholders() {
+  const withTitles = allAccounts.filter(a => a.target_titles && a.target_titles.length);
+  const tbody = document.getElementById('stakeholdersList');
+  const empty = document.getElementById('stakeholdersEmpty');
+  if (!withTitles.length) { empty.classList.remove('hidden'); tbody.innerHTML = ''; return; }
+  empty.classList.add('hidden');
+  tbody.innerHTML = withTitles.map(a => `
+    <tr>
+      <td class="py-3 px-5">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center font-bold text-[11px] text-accent shrink-0">${initials(a.name)}</div>
+          <div>
+            <p class="text-[13px] font-semibold text-on-surface leading-tight">${escHtml(a.name)}</p>
+            <p class="text-[11px] font-mono text-on-surface-var">${escHtml(a.domain||'—')}</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-3">
+        <div class="flex flex-wrap gap-1.5">${a.target_titles.map(t => `<span class="px-2.5 py-1 bg-accent/10 text-accent rounded-full text-[11px] font-mono">${escHtml(t)}</span>`).join('')}</div>
+      </td>
+      <td class="py-3 px-3 text-right">
+        ${a.score != null ? `<span class="px-2 py-0.5 bg-accent/10 text-accent rounded text-[11px] font-mono font-bold">${a.score}/10</span>` : '<span class="text-on-surface-var text-[11px] font-mono">—</span>'}
+      </td>
+    </tr>`).join('');
+}
+
+// ── Library ────────────────────────────────────────────────────────────────────
+function renderLibrary() {
+  const tbody = document.getElementById('libraryList');
+  const empty = document.getElementById('libraryEmpty');
+  if (!allAccounts.length) { empty.classList.remove('hidden'); tbody.innerHTML = ''; return; }
+  empty.classList.add('hidden');
+  const dotCls = {pending:'dot-pending',running:'dot-running',enriched:'dot-enriched',dropped:'dot-dropped',error:'dot-error'};
+  const statusLabel = {pending:'Pending',running:'Analyzing',enriched:'Enriched',dropped:'Dropped',error:'Error'};
+  tbody.innerHTML = allAccounts.map(a => `
+    <tr>
+      <td class="py-3 px-5 whitespace-nowrap">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center font-bold text-[11px] text-accent shrink-0">${initials(a.name)}</div>
+          <div>
+            <p class="text-[13px] font-semibold text-on-surface leading-tight">${escHtml(a.name)}</p>
+            <p class="text-[11px] font-mono text-on-surface-var">${escHtml(a.domain||'—')}</p>
+          </div>
+        </div>
+      </td>
+      <td class="py-3 px-3 whitespace-nowrap">
+        <div class="flex items-center gap-1.5">
+          <span class="status-dot ${dotCls[a.status]||'dot-pending'}"></span>
+          <span class="text-[11px] font-mono">${statusLabel[a.status]||a.status}</span>
+        </div>
+      </td>
+      <td class="py-3 px-3 text-right whitespace-nowrap">
+        ${a.score != null ? `<span class="px-2 py-0.5 bg-accent/10 text-accent rounded text-[11px] font-mono font-bold">${a.score}/10</span>` : '<span class="text-on-surface-var text-[11px] font-mono">—</span>'}
+      </td>
+      <td class="py-3 px-3 text-[12px] text-on-surface-var max-w-[220px] truncate">${escHtml(a.angle||'—')}</td>
+      <td class="py-3 px-3 text-[12px] text-on-surface-var max-w-[260px] truncate">${escHtml(a.key_insight||'—')}</td>
+      <td class="py-3 px-3 whitespace-nowrap">
+        ${a.pipedrive_org_id ? `<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[11px] font-mono font-semibold">Synced</span>` : '<span class="text-on-surface-mute text-[11px] font-mono">—</span>'}
+      </td>
+      <td class="py-3 px-5 text-right text-[11px] font-mono text-on-surface-mute whitespace-nowrap">${timeAgo(a.updated_at)}</td>
+    </tr>`).join('');
+}
+
+// ── Profile-driven defaults ───────────────────────────────────────────────────
+async function prefillFromProfile() {
+  try {
+    const p = await apiFetch('/api/profile').then(r => r.json());
+    if (!p || !p.onboarding_completed) return;
+    const vp = document.getElementById('valueProp');
+    if (vp && !vp.value.trim()) {
+      const parts = [p.icp, p.audience && `Audience: ${p.audience}`, p.industry && `Industry: ${p.industry}`, p.target_roles && `Targets: ${p.target_roles}`]
+        .filter(Boolean);
+      if (parts.length) vp.value = parts.join('. ');
+    }
+  } catch (e) { /* no profile yet — leave the form blank */ }
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+showView('analytics'); // sets Analytics as active nav
+loadAllAccounts(); // populate the Accounts tab with real historical data, not just the active run
+prefillFromProfile();
+appendChatMsg('agent', 'Hello! I\'m your AI orchestrator. Tell me to <b>start a run</b>, <b>preview the sheet</b>, or ask about any account.', true);
+</script></body></html>
