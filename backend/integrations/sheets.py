@@ -14,6 +14,11 @@ _SCOPES = [
 
 
 def _resolve_credentials_path() -> Path:
+    if not settings.google_service_account_json:
+        raise ValueError(
+            "Google Sheets is not configured — set GOOGLE_SERVICE_ACCOUNT_JSON "
+            "and GOOGLE_SHEET_ID in .env, or use manual/CSV account entry instead."
+        )
     path = Path(settings.google_service_account_json)
     if not path.is_absolute():
         path = PROJECT_ROOT / path

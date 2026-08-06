@@ -151,7 +151,7 @@ async def start_run(body: StartRunBody, user: dict = Depends(get_current_user)):
             raise HTTPException(400, "No accounts to process")
         sheet_id = (body.sheet_id or "manual").strip()
     else:
-        sheet_id = (body.sheet_id or settings.google_sheet_id).strip()
+        sheet_id = (body.sheet_id or settings.google_sheet_id or "").strip()
         if not sheet_id:
             raise HTTPException(400, "sheet_id is required")
         try:
@@ -244,7 +244,7 @@ async def analytics(user: dict = Depends(get_current_user)):
 async def preview_sheet(
     sheet_id: str | None = None, user: dict = Depends(get_current_user)
 ):
-    target = (sheet_id or settings.google_sheet_id).strip()
+    target = (sheet_id or settings.google_sheet_id or "").strip()
     if not target:
         raise HTTPException(400, "sheet_id is required")
     try:

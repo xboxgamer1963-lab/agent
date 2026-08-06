@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     tavily_api_key: str
     firecrawl_api_key: str
     pipedrive_api_key: str | None = None
-    google_sheet_id: str
-    google_service_account_json: str
+    google_sheet_id: str | None = None
+    google_service_account_json: str | None = None
     batch_size: int = 5
     relevance_threshold: int = 7
     nvidia_api_key: str | None = None
