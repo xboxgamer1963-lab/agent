@@ -10,3 +10,4 @@ frontend/.astro/
 .claude/
 uvicorn_out.log
 uvicorn_err.log
+.gstack/

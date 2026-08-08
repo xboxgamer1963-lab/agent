@@ -315,7 +315,7 @@ tailwind.config = {
             <span class="w-1.5 h-1.5 rounded-full bg-brand" style="animation:pulse 1.5s ease-in-out infinite;"></span>
             AI PIPELINE
           </span>
-          <span class="text-[11px] font-mono text-on-surface-mute tracking-wide">8 SPECIALIST AGENTS · CLAUDE OPUS 4 · 5× CONCURRENT</span>
+          <span class="text-[11px] font-mono text-on-surface-mute tracking-wide">8 SPECIALIST AGENTS · POWERED BY GEMINI · 5× CONCURRENT</span>
         </div>
         <h1 class="text-[24px] font-bold text-on-surface tracking-tight">Start Account Research</h1>
         <p class="text-[14px] text-on-surface-var mt-1 max-w-2xl leading-relaxed">Eight named agents research each account, score fit, and push qualified accounts to Pipedrive with a full briefing.</p>
@@ -1124,7 +1124,13 @@ async function startRun() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ sheet_id: sheetId || null, value_prop: valueProp, accounts })
     });
-    if (!res.ok) { const e = await res.json(); errEl.textContent = e.detail || 'Failed to start.'; return; }
+    if (!res.ok) {
+      const e = await res.json();
+      errEl.textContent = e.detail === 'sheet_id is required'
+        ? 'Add a Google Sheet ID or list at least one account domain to research.'
+        : (e.detail || 'Failed to start.');
+      return;
+    }
     const data = await res.json();
     currentRunId = data.run_id;
     showView('dashboard');
@@ -1868,24 +1874,9 @@ function renderLibrary() {
     </tr>`).join('');
 }
 
-// ── Profile-driven defaults ───────────────────────────────────────────────────
-async function prefillFromProfile() {
-  try {
-    const p = await apiFetch('/api/profile').then(r => r.json());
-    if (!p || !p.onboarding_completed) return;
-    const vp = document.getElementById('valueProp');
-    if (vp && !vp.value.trim()) {
-      const parts = [p.icp, p.audience && `Audience: ${p.audience}`, p.industry && `Industry: ${p.industry}`, p.target_roles && `Targets: ${p.target_roles}`]
-        .filter(Boolean);
-      if (parts.length) vp.value = parts.join('. ');
-    }
-  } catch (e) { /* no profile yet — leave the form blank */ }
-}
-
 // ── Boot ──────────────────────────────────────────────────────────────────────
 showView('analytics'); // sets Analytics as active nav
 loadAllAccounts(); // populate the Accounts tab with real historical data, not just the active run
-prefillFromProfile();
 appendChatMsg('agent', 'Hello! I\'m your AI orchestrator. Tell me to <b>start a run</b>, <b>preview the sheet</b>, or ask about any account.', true);
 </script>
 </body>
