@@ -44,6 +44,7 @@ tailwind.config = {
   .onb-step.active { display: block; }
   .tone-chip { transition: all 0.15s; cursor: pointer; }
   .tone-chip.selected { background: #0f7c41; color: #fff; border-color: #0f7c41; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body class="bg-surface text-on-surface min-h-screen flex items-center justify-center p-6">
@@ -58,10 +59,10 @@ tailwind.config = {
   </div>
 
   <!-- Step indicator -->
-  <div class="flex items-center justify-center gap-3 mb-8">
+  <div id="stepDots" class="hidden items-center justify-center gap-3 mb-8">
     <div class="flex items-center gap-2">
-      <span id="dot-1" class="step-dot w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold border-2 border-brand bg-brand text-white">1</span>
-      <span class="text-[12px] font-mono font-semibold text-on-surface hidden sm:inline">About You</span>
+      <span id="dot-1" class="step-dot w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold border-2 border-outline-var text-on-surface-mute">1</span>
+      <span class="text-[12px] font-mono font-semibold text-on-surface-mute hidden sm:inline">About You</span>
     </div>
     <span class="w-8 h-px bg-outline-var"></span>
     <div class="flex items-center gap-2">
@@ -77,8 +78,76 @@ tailwind.config = {
 
   <div class="bg-white border border-outline-var rounded-[24px] p-8 sm:p-10">
 
+    <!-- STEP 0 — Website / AI ICP builder -->
+    <div id="step-0" class="onb-step active space-y-5">
+      <div id="site-capture">
+        <div>
+          <h1 class="text-[24px] font-bold text-on-surface">Let's find your ICP</h1>
+          <p class="text-[13px] text-on-surface-var mt-1">Give us your website and AI will research your market and draft your ICP — or skip and fill it in yourself.</p>
+        </div>
+        <label class="block mt-5">
+          <span class="field-label">Company website</span>
+          <input id="f_website" type="text" placeholder="e.g. acmefleet.com" class="field-input"/>
+        </label>
+        <p id="siteError" class="text-red-600 text-[13px] font-medium mt-2"></p>
+        <div class="flex flex-wrap items-center gap-3 mt-6">
+          <button id="analyzeBtn" onclick="analyzeWebsite()" class="flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-xl text-[13px] font-semibold shadow-sm hover:bg-brand-dark transition-colors">
+            <span class="material-symbols-outlined text-[18px]">auto_awesome</span> Analyze with AI
+          </button>
+          <button onclick="skipToManual()" class="px-5 py-2.5 text-[13px] font-semibold text-on-surface-mute hover:text-on-surface transition-colors">I don't have a website — I'll fill it in myself</button>
+        </div>
+      </div>
+
+      <div id="site-loading" class="hidden py-10 text-center space-y-3">
+        <div class="w-10 h-10 mx-auto rounded-full border-2 border-outline-var border-t-brand" style="animation: spin 0.8s linear infinite;"></div>
+        <p class="text-[13px] font-mono text-on-surface-var">Reading your homepage and researching your market…</p>
+      </div>
+
+      <div id="site-review" class="hidden space-y-5">
+        <div>
+          <h1 class="text-[24px] font-bold text-on-surface">Here's what we found</h1>
+          <p class="text-[13px] text-on-surface-var mt-1">Review and edit anything before we save it.</p>
+        </div>
+        <div class="rounded-2xl border border-outline-var bg-surface p-5 space-y-4">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-brand text-[20px]" style="font-variation-settings:'FILL' 1;">auto_awesome</span>
+            <span id="review_company" class="text-[15px] font-bold"></span>
+            <span class="ml-auto text-[11px] font-mono text-on-surface-mute">AI-suggested</span>
+          </div>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <label class="block">
+              <span class="field-label">Industry</span>
+              <input id="review_industry" type="text" class="field-input"/>
+            </label>
+            <label class="block">
+              <span class="field-label">Target Market</span>
+              <input id="review_target_market" type="text" class="field-input"/>
+            </label>
+          </div>
+          <label class="block">
+            <span class="field-label">Audience</span>
+            <input id="review_audience" type="text" class="field-input"/>
+          </label>
+          <label class="block">
+            <span class="field-label">Ideal Customer Profile (ICP)</span>
+            <textarea id="review_icp" rows="3" class="field-input resize-none"></textarea>
+          </label>
+          <label class="block">
+            <span class="field-label">Target Roles</span>
+            <input id="review_target_roles" type="text" class="field-input"/>
+          </label>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button onclick="confirmReview()" class="flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-xl text-[13px] font-semibold shadow-sm hover:bg-brand-dark transition-colors">
+            Looks good <span class="material-symbols-outlined text-[18px]">check</span>
+          </button>
+          <button onclick="resetSite()" class="px-5 py-2.5 text-[13px] font-semibold text-on-surface-mute hover:text-on-surface transition-colors">Start over</button>
+        </div>
+      </div>
+    </div>
+
     <!-- STEP 1 — About You -->
-    <div id="step-1" class="onb-step active space-y-5">
+    <div id="step-1" class="onb-step space-y-5">
       <div>
         <h1 class="text-[24px] font-bold text-on-surface">Tell us about you</h1>
         <p class="text-[13px] text-on-surface-var mt-1">This helps us tailor InsightEngine to how you sell.</p>
@@ -167,16 +236,18 @@ tailwind.config = {
       </label>
     </div>
 
-    <p id="onbError" class="text-red-600 text-[13px] font-medium mt-2"></p>
+    <div id="formFooter" class="hidden">
+      <p id="onbError" class="text-red-600 text-[13px] font-medium mt-2"></p>
 
-    <!-- Actions -->
-    <div class="flex items-center justify-between pt-8 mt-6 border-t border-outline-var">
-      <button id="backBtn" onclick="prevStep()" class="hidden px-5 py-2.5 text-[13px] font-semibold text-on-surface-var hover:text-on-surface transition-colors">Back</button>
-      <div class="ml-auto flex items-center gap-3">
-        <button id="skipBtn" onclick="finishOnboarding(true)" class="px-5 py-2.5 text-[13px] font-semibold text-on-surface-mute hover:text-on-surface transition-colors">Skip for now</button>
-        <button id="nextBtn" onclick="nextStep()" class="flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-xl text-[13px] font-semibold shadow-sm hover:bg-brand-dark transition-colors">
-          Continue <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-        </button>
+      <!-- Actions -->
+      <div class="flex items-center justify-between pt-8 mt-6 border-t border-outline-var">
+        <button id="backBtn" onclick="prevStep()" class="hidden px-5 py-2.5 text-[13px] font-semibold text-on-surface-var hover:text-on-surface transition-colors">Back</button>
+        <div class="ml-auto flex items-center gap-3">
+          <button id="skipBtn" onclick="finishOnboarding(true)" class="px-5 py-2.5 text-[13px] font-semibold text-on-surface-mute hover:text-on-surface transition-colors">Skip for now</button>
+          <button id="nextBtn" onclick="nextStep()" class="flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-xl text-[13px] font-semibold shadow-sm hover:bg-brand-dark transition-colors">
+            Continue <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -189,11 +260,83 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentStep = 1;
 let selectedTone = 'professional';
+let aiSuggestion = null;
 
 (async function() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) window.location.href = '/';
 })();
+
+async function analyzeWebsite() {
+  const website = document.getElementById('f_website').value.trim();
+  const errEl = document.getElementById('siteError');
+  errEl.textContent = '';
+  if (!website) { errEl.textContent = 'Enter a website first, or skip below.'; return; }
+
+  document.getElementById('site-capture').classList.add('hidden');
+  document.getElementById('site-loading').classList.remove('hidden');
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = '/'; return; }
+    const res = await fetch('/api/onboarding/analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ website }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.detail || 'Could not analyze that website.');
+    }
+    aiSuggestion = await res.json();
+    document.getElementById('review_company').textContent = aiSuggestion.company || website;
+    document.getElementById('review_industry').value = aiSuggestion.industry || '';
+    document.getElementById('review_target_market').value = aiSuggestion.target_market || '';
+    document.getElementById('review_audience').value = aiSuggestion.audience || '';
+    document.getElementById('review_icp').value = aiSuggestion.icp || '';
+    document.getElementById('review_target_roles').value = aiSuggestion.target_roles || '';
+    document.getElementById('site-loading').classList.add('hidden');
+    document.getElementById('site-review').classList.remove('hidden');
+  } catch (e) {
+    document.getElementById('site-loading').classList.add('hidden');
+    document.getElementById('site-capture').classList.remove('hidden');
+    errEl.textContent = e.message;
+  }
+}
+
+function resetSite() {
+  aiSuggestion = null;
+  document.getElementById('site-review').classList.add('hidden');
+  document.getElementById('site-capture').classList.remove('hidden');
+}
+
+function confirmReview() {
+  document.getElementById('f_industry').value = document.getElementById('review_industry').value;
+  document.getElementById('f_target_market').value = document.getElementById('review_target_market').value;
+  document.getElementById('f_audience').value = document.getElementById('review_audience').value;
+  document.getElementById('f_icp').value = document.getElementById('review_icp').value;
+  document.getElementById('f_target_roles').value = document.getElementById('review_target_roles').value;
+  if (aiSuggestion && aiSuggestion.company) {
+    document.getElementById('f_company').value = aiSuggestion.company;
+  }
+  leaveWebsiteStep();
+}
+
+function skipToManual() {
+  leaveWebsiteStep();
+}
+
+function leaveWebsiteStep() {
+  document.getElementById('step-0').classList.remove('active');
+  document.getElementById('stepDots').classList.remove('hidden');
+  document.getElementById('stepDots').classList.add('flex');
+  document.getElementById('formFooter').classList.remove('hidden');
+  currentStep = 1;
+  showStep(1);
+}
 
 document.getElementById('f_good_score').addEventListener('input', (e) => {
   document.getElementById('f_good_score_label').textContent = e.target.value + '/10';

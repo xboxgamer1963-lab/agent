@@ -10,8 +10,9 @@ from pydantic import BaseModel
 
 import db
 import queue_manager
+from agents import icp_builder
 from config import PROJECT_ROOT, settings
-from integrations import sheets
+from integrations import firecrawl, sheets, tavily
 
 FRONTEND = PROJECT_ROOT / "frontend" / "dist" / "dashboard" / "index.html"
 LANDING  = PROJECT_ROOT / "frontend" / "dist" / "index.html"
@@ -71,6 +72,10 @@ class ProfileIn(BaseModel):
     target_roles: str | None = None
     good_score: int = 7
     tone: str = "professional"
+
+
+class WebsiteAnalyzeBody(BaseModel):
+    website: str
 
 
 def _slim_account(row: dict) -> dict:
@@ -137,6 +142,28 @@ async def save_profile(body: ProfileIn, user: dict = Depends(get_current_user)):
     data = body.model_dump()
     data["onboarding_completed"] = True
     return await db.upsert_profile(user["id"], user.get("email"), data)
+
+
+@app.post("/api/onboarding/analyze")
+async def analyze_website(
+    body: WebsiteAnalyzeBody, user: dict = Depends(get_current_user)
+):
+    site = body.website.strip()
+    if not site:
+        raise HTTPException(400, "website is required")
+    url = site if site.startswith(("http://", "https://")) else f"https://{site}"
+    domain = url.split("//", 1)[-1].split("/", 1)[0]
+
+    homepage, search_results = await asyncio.gather(
+        firecrawl.scrape(url),
+        tavily.search(f"{domain} company overview customers industry"),
+    )
+    if not homepage and not search_results:
+        raise HTTPException(
+            422,
+            "Couldn't read that website — check the URL, or fill in your ICP manually.",
+        )
+    return await icp_builder.run(url, homepage, search_results)
 
 
 @app.post("/api/runs")
