@@ -714,7 +714,10 @@ tailwind.config = {
           <span id="heroStatusTag" class="hidden flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-[11px] font-mono font-semibold rounded-full">HIGH INTENT</span>
         </div>
         <div class="space-y-3 relative z-10">
-          <h1 id="heroName" class="text-[24px] font-black text-on-surface leading-tight tracking-tight"></h1>
+          <div class="flex items-center gap-3">
+            <div id="heroLogo"></div>
+            <h1 id="heroName" class="text-[24px] font-black text-on-surface leading-tight tracking-tight"></h1>
+          </div>
           <p id="heroSummary" class="text-[14px] text-on-surface-var leading-relaxed"></p>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
             <div class="p-3 bg-surface rounded-xl border border-outline-var">
@@ -1300,7 +1303,7 @@ function renderAccountRows(accounts) {
     <tr class="acct-row${a.id === selectedAccountId ? ' selected' : ''}" onclick="selectAccount(${a.id})">
       <td class="py-3 px-5">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center font-bold text-[11px] text-accent shrink-0">${initials(a.name)}</div>
+          ${avatarHtml(a.name, a.domain)}
           <div>
             <p class="text-[13px] font-semibold text-on-surface leading-tight">${escHtml(a.name)}</p>
             <p class="text-[11px] font-mono text-on-surface-var">${escHtml(a.domain||'—')}</p>
@@ -1362,6 +1365,7 @@ function updateDetailPanel(account, logs) {
 
   // Hero
   document.getElementById('heroName').textContent = account.name;
+  document.getElementById('heroLogo').innerHTML = avatarHtml(account.name, account.domain, 'w-11 h-11 rounded-xl text-[13px]');
   document.getElementById('heroSummary').textContent =
     dossier?.summary || hyp?.hypothesis || (account.status === 'running' ? 'Agents are actively researching this account…' : 'No data yet.');
   document.getElementById('heroAngle').textContent =
@@ -1637,6 +1641,17 @@ function initials(name) {
   return name.split(/\s+/).slice(0,2).map(w => w[0]||'').join('').toUpperCase() || '?';
 }
 
+function avatarHtml(name, domain, sizeClass) {
+  sizeClass = sizeClass || 'w-9 h-9 rounded-lg text-[11px]';
+  const logo = domain
+    ? `<img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64" onerror="this.remove()" onload="if(this.naturalWidth<32)this.remove()" class="absolute inset-0 w-full h-full object-cover" alt=""/>`
+    : '';
+  return `<div class="relative ${sizeClass} bg-accent/10 flex items-center justify-center font-bold text-accent shrink-0 overflow-hidden">
+    <span>${initials(name)}</span>
+    ${logo}
+  </div>`;
+}
+
 // ── Settings ───────────────────────────────────────────────────────────────────
 let settingsTone = 'professional';
 
@@ -1725,7 +1740,7 @@ function renderIntelligence() {
     <tr>
       <td class="py-3 px-5">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center font-bold text-[11px] text-accent shrink-0">${initials(a.name)}</div>
+          ${avatarHtml(a.name, a.domain)}
           <div>
             <p class="text-[13px] font-semibold text-on-surface leading-tight">${escHtml(a.name)}</p>
             <p class="text-[11px] font-mono text-on-surface-var">${escHtml(a.domain||'—')}</p>
@@ -1799,7 +1814,7 @@ function renderStakeholders() {
     <tr>
       <td class="py-3 px-5">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center font-bold text-[11px] text-accent shrink-0">${initials(a.name)}</div>
+          ${avatarHtml(a.name, a.domain)}
           <div>
             <p class="text-[13px] font-semibold text-on-surface leading-tight">${escHtml(a.name)}</p>
             <p class="text-[11px] font-mono text-on-surface-var">${escHtml(a.domain||'—')}</p>
@@ -1827,7 +1842,7 @@ function renderLibrary() {
     <tr>
       <td class="py-3 px-5 whitespace-nowrap">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center font-bold text-[11px] text-accent shrink-0">${initials(a.name)}</div>
+          ${avatarHtml(a.name, a.domain)}
           <div>
             <p class="text-[13px] font-semibold text-on-surface leading-tight">${escHtml(a.name)}</p>
             <p class="text-[11px] font-mono text-on-surface-var">${escHtml(a.domain||'—')}</p>
