@@ -876,6 +876,7 @@ const NAV_MAP = {
 const COMING_SOON = {};
 
 function showView(view) {
+  if (view !== 'dashboard') closeDetail();
   const isComingSoon = view in COMING_SOON;
   document.getElementById('analyticsPanel').classList.toggle('hidden', view !== 'analytics');
   document.getElementById('setupPanel').classList.toggle('hidden', view !== 'setup');
