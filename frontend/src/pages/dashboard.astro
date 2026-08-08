@@ -1499,11 +1499,6 @@ function updateDetailPanel(account, logs) {
   } else {
     pdEl.innerHTML = pendingBlock(account.status === 'running' || account.status === 'pending' ? 'Compiling dossier…' : 'No dossier data.');
   }
-
-  // Log
-  const logEl = document.getElementById('logContent');
-  if (logs.length) { logEl.innerHTML = logs.map(renderLogEntry).join(''); }
-  else { logEl.innerHTML = '<p class="text-[14px] text-on-surface-var italic">No log entries yet.</p>'; }
 }
 
 // ── Render helpers ────────────────────────────────────────────────────────────
@@ -1595,24 +1590,6 @@ function renderEvalCard(containerId, ev, account) {
       <p class="text-[11px] font-mono font-semibold text-accent uppercase tracking-wide mb-1">Suggested Angle</p>
       <p class="text-[13px] text-on-surface">${escHtml(ev.suggested_angle)}</p>
     </div>` : ''}
-  </div>`;
-}
-
-function renderLogEntry(l) {
-  const icons = {hypothesise:'lightbulb',news:'newspaper',linkedin:'group',evaluate:'grade',retry:'refresh',save:'save',search_cmd:'manage_search',drop:'cancel',error:'error'};
-  const cols  = {hypothesise:'text-accent',news:'text-accent',linkedin:'text-accent',evaluate:'text-green-600',retry:'text-amber-600',save:'text-green-600',search_cmd:'text-accent',drop:'text-on-surface-var',error:'text-red-600'};
-  const time = new Date(l.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  return `<div class="flex gap-3">
-    <div class="flex-shrink-0 w-8 h-8 bg-outline-var rounded-full flex items-center justify-center">
-      <span class="material-symbols-outlined text-[15px] ${cols[l.step]||'text-on-surface-var'}">${icons[l.step]||'chevron_right'}</span>
-    </div>
-    <div class="flex-grow">
-      <div class="flex items-baseline gap-2 mb-0.5">
-        <span class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide">${escHtml(l.step)}</span>
-        <span class="text-[11px] font-mono text-on-surface-var/50">${time}</span>
-      </div>
-      <p class="text-[14px] text-on-surface leading-relaxed">${escHtml(l.message)}</p>
-    </div>
   </div>`;
 }
 
