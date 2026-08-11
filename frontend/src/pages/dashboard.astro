@@ -110,6 +110,24 @@ tailwind.config = {
   #chatModal.open { display:flex; }
   .nav-link { text-decoration: none; }
   code, .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* Unified enrichment table — dense, grid-lined, spreadsheet feel */
+  .acct-table { border-collapse: collapse; }
+  .acct-table td, .acct-table th { border-right: 1px solid #EDEDED; }
+  .acct-table td:last-child, .acct-table th:last-child { border-right: none; }
+  .acct-table tbody tr { height: 38px; }
+  .draft-row td { background: #fafbff; }
+  .draft-row:last-child td { border-bottom: none; }
+  .cell-input {
+    width: 100%; height: 100%; padding: 8px 10px; border: 1px solid transparent;
+    border-radius: 6px; background: transparent; font-size: 13px; color: #171717;
+    outline: none; transition: border-color 0.1s, background 0.1s;
+  }
+  .cell-input::placeholder { color: #9a9aa5; }
+  .cell-input:hover { background: rgba(36,95,193,0.04); }
+  .cell-input:focus { border-color: #245fc1; background: #fff; box-shadow: 0 0 0 2px rgba(36,95,193,0.12); }
+  .draft-remove-btn { opacity: 0; transition: opacity 0.1s; }
+  .draft-row:hover .draft-remove-btn { opacity: 1; }
 </style>
 </head>
 <body class="bg-surface text-on-surface overflow-hidden h-screen flex">
@@ -140,10 +158,6 @@ tailwind.config = {
     <a href="#" onclick="showView('analytics');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-var hover:bg-outline-var transition-all rounded-xl" id="navAnalytics">
       <span class="material-symbols-outlined text-[22px]">bar_chart</span>
       <span class="text-[12px] font-mono font-semibold tracking-wide">Analytics</span>
-    </a>
-    <a href="#" onclick="showView('setup');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-var hover:bg-outline-var transition-all rounded-xl" id="navSetup">
-      <span class="material-symbols-outlined text-[22px]">rocket_launch</span>
-      <span class="text-[12px] font-mono font-semibold tracking-wide">Pipeline</span>
     </a>
     <a href="#" onclick="showView('dashboard');return false;" class="nav-link flex items-center gap-4 px-4 py-3 text-on-surface-var hover:bg-outline-var transition-all rounded-xl" id="navDashboard">
       <span class="material-symbols-outlined text-[22px]">business_center</span>
@@ -239,7 +253,7 @@ tailwind.config = {
           <p class="text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide mb-1.5">Total Accounts</p>
           <p id="statTotal" class="text-[34px] font-black text-on-surface leading-none">—</p>
         </div>
-        <div onclick="showView('setup')" class="kpi-card group bg-white border border-outline-var rounded-2xl p-6 cursor-pointer">
+        <div onclick="showView('dashboard')" class="kpi-card group bg-white border border-outline-var rounded-2xl p-6 cursor-pointer">
           <div class="flex items-center justify-between mb-4">
             <span class="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center"><span class="material-symbols-outlined text-brand text-[20px]">rocket_launch</span></span>
             <span class="material-symbols-outlined text-on-surface-mute text-[18px] opacity-0 group-hover:opacity-100 transition-opacity">arrow_outward</span>
@@ -297,7 +311,7 @@ tailwind.config = {
       <div class="bg-white border border-outline-var rounded-2xl overflow-hidden">
         <div class="flex items-center justify-between px-6 py-4 border-b border-outline-var">
           <p class="text-[13px] font-bold text-on-surface">Recent Runs</p>
-          <button onclick="showView('setup')" class="text-[12px] font-semibold text-accent hover:underline">Start a new run</button>
+          <button onclick="showView('dashboard')" class="text-[12px] font-semibold text-accent hover:underline">Start a new run</button>
         </div>
         <div id="recentRunsList"></div>
       </div>
@@ -306,88 +320,91 @@ tailwind.config = {
     <!-- =====================================================
          SETUP PANEL
          ===================================================== -->
-    <section id="setupPanel" class="hidden p-10 space-y-8">
+    <!-- =====================================================
+         DASHBOARD PANEL (unified add + enrich table)
+         ===================================================== -->
+    <section id="dashboardPanel" class="hidden p-10 space-y-4">
 
       <!-- Page header -->
-      <div>
-        <div class="flex items-center gap-2 mb-2">
-          <span class="flex items-center gap-1.5 px-2.5 py-1 bg-brand/10 text-brand text-[11px] font-mono font-semibold rounded-full tracking-wide">
-            <span class="w-1.5 h-1.5 rounded-full bg-brand" style="animation:pulse 1.5s ease-in-out infinite;"></span>
-            AI PIPELINE
-          </span>
-          <span class="text-[11px] font-mono text-on-surface-mute tracking-wide">8 SPECIALIST AGENTS · POWERED BY GEMINI · 5× CONCURRENT</span>
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="flex items-center gap-1.5 px-2.5 py-1 bg-brand/10 text-brand text-[11px] font-mono font-semibold rounded-full tracking-wide">
+              <span class="w-1.5 h-1.5 rounded-full bg-brand" style="animation:pulse 1.5s ease-in-out infinite;"></span>
+              AI PIPELINE
+            </span>
+            <span class="text-[11px] font-mono text-on-surface-mute tracking-wide hidden sm:inline">8 SPECIALIST AGENTS · POWERED BY GEMINI</span>
+          </div>
+          <h1 class="text-[22px] font-bold text-on-surface">Accounts</h1>
         </div>
-        <h1 class="text-[24px] font-bold text-on-surface tracking-tight">Start Account Research</h1>
-        <p class="text-[14px] text-on-surface-var mt-1 max-w-2xl leading-relaxed">Eight named agents research each account, score fit, and push qualified accounts to Pipedrive with a full briefing.</p>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="px-2.5 py-1 bg-surface text-on-surface-var rounded-full text-[11px] font-mono font-semibold">Pending <b id="cntPending">0</b></span>
+          <span class="px-2.5 py-1 bg-accent/10 text-accent rounded-full text-[11px] font-mono font-semibold">Running <b id="cntRunning">0</b></span>
+          <span class="px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-[11px] font-mono font-semibold">Enriched <b id="cntEnriched">0</b></span>
+          <span class="px-2.5 py-1 bg-surface text-on-surface-var rounded-full text-[11px] font-mono font-semibold">Dropped <b id="cntDropped">0</b></span>
+          <span class="px-2.5 py-1 bg-red-50 text-red-700 rounded-full text-[11px] font-mono font-semibold">Error <b id="cntError">0</b></span>
+        </div>
+      </div>
+      <div class="w-full bg-outline-var h-1 rounded-full overflow-hidden">
+        <div id="progressBar" class="bg-accent h-full transition-all duration-700 rounded-full" style="width:0%"></div>
+      </div>
+      <p id="progressPct" class="text-[12px] font-mono text-on-surface-mute"></p>
+
+      <!-- Value prop + enrich bar -->
+      <div class="bg-white border border-outline-var rounded-2xl p-4 space-y-3">
+        <div class="flex items-center gap-3">
+          <span class="text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide shrink-0">Selling</span>
+          <input id="valueProp" type="text" placeholder="e.g. Fleet Telematics — real-time driver coaching for fleets under CSA / insurance pressure."
+            class="flex-1 border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white transition-all"/>
+          <button id="enrichBtn" onclick="enrichDrafts()" class="action-chip flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-xl text-[13px] font-semibold shadow-sm shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
+            <span class="material-symbols-outlined text-[18px]">rocket_launch</span> <span id="enrichBtnLabel">Enrich</span>
+          </button>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" onclick="document.getElementById('csvUpload').click()" class="flex items-center gap-1.5 px-3 py-1.5 border border-outline-var rounded-lg text-[12px] font-semibold text-on-surface-var hover:bg-surface transition-colors">
+            <span class="material-symbols-outlined text-[16px]">upload_file</span> Import CSV
+          </button>
+          <input id="csvUpload" type="file" accept=".csv,text/csv" class="hidden" onchange="handleCsvUpload(event)"/>
+          <button type="button" onclick="toggleSheetImport()" class="flex items-center gap-1.5 px-3 py-1.5 border border-outline-var rounded-lg text-[12px] font-semibold text-on-surface-var hover:bg-surface transition-colors">
+            <span class="material-symbols-outlined text-[16px]">table_view</span> Import from Google Sheet
+          </button>
+          <span id="csvFileName" class="text-[12px] text-on-surface-mute"></span>
+        </div>
+        <div id="sheetImportRow" class="hidden flex items-center gap-2">
+          <input id="sheetId" type="text" placeholder="Sheet ID (leave empty for .env default)"
+            class="flex-1 max-w-sm border border-outline-var rounded-lg px-3 py-2 text-[13px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white transition-all"/>
+          <button onclick="importFromSheet()" class="px-3 py-2 border border-outline-var rounded-lg text-[12px] font-semibold text-on-surface-var hover:bg-surface transition-colors">Import rows</button>
+        </div>
+        <p id="setupError" class="text-red-600 text-[13px] font-medium"></p>
       </div>
 
-      <!-- Configuration form -->
+      <!-- Unified table: draft rows (editable) + live/historical rows -->
       <div class="bg-white border border-outline-var rounded-2xl overflow-hidden">
-        <div class="px-8 py-6 border-b border-outline-var">
-          <h2 class="text-[17px] font-bold text-on-surface">Configure Run</h2>
-          <p class="text-[13px] text-on-surface-var mt-1">Point the pipeline at a data source and tell the agents what you're selling.</p>
+        <div class="flex items-center justify-between px-5 py-3 border-b border-outline-var gap-3">
+          <div class="flex items-center gap-2 flex-1">
+            <div class="relative flex-1 max-w-xs">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-mute text-[18px]">search</span>
+              <input id="acctSearch" type="text" placeholder="Search accounts…" oninput="filterAccounts()"
+                class="w-full pl-9 pr-3 py-2 border border-outline-var rounded-lg text-[13px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-surface transition-all"/>
+            </div>
+            <span id="statusFilterChip" class="hidden items-center gap-1.5 pl-3 pr-1.5 py-1.5 bg-accent/10 text-accent rounded-full text-[12px] font-semibold"></span>
+          </div>
+          <span id="acctCount" class="text-[11px] font-mono text-on-surface-mute shrink-0"></span>
         </div>
-
-        <div class="p-8 space-y-8">
-
-          <!-- Step 1: Data source -->
-          <div>
-            <div class="flex items-center gap-2 mb-4">
-              <span class="w-5 h-5 rounded-full bg-accent/10 text-accent text-[11px] font-mono font-bold flex items-center justify-center shrink-0">1</span>
-              <span class="text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Data Source</span>
-            </div>
-            <div class="grid md:grid-cols-[1fr_auto_1fr] gap-4">
-              <label class="block">
-                <span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Google Sheet</span>
-                <input id="sheetId" type="text" placeholder="Sheet ID"
-                  class="w-full border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white transition-all"/>
-                <p class="text-[12px] text-on-surface-mute mt-1.5">Leave empty to use the <code class="font-mono">.env</code> default. Needs <code class="font-mono">Name</code> and <code class="font-mono">Domain</code> columns.</p>
-              </label>
-              <div class="hidden md:flex flex-col items-center">
-                <span class="w-px flex-1 bg-outline-var"></span>
-                <span class="py-2 text-[11px] font-mono font-semibold text-on-surface-mute">OR</span>
-                <span class="w-px flex-1 bg-outline-var"></span>
-              </div>
-              <label class="block">
-                <span class="text-[13px] font-semibold text-on-surface mb-1.5 block">Manual Domain List</span>
-                <textarea id="manualDomains" rows="3" placeholder="acme.com&#10;Acme Inc, acme.com"
-                  class="w-full border border-outline-var rounded-xl px-4 py-2.5 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white resize-none transition-all"></textarea>
-                <div class="flex items-center gap-2 mt-2">
-                  <button type="button" onclick="document.getElementById('csvUpload').click()" class="flex items-center gap-1.5 px-3 py-1.5 border border-outline-var rounded-lg text-[12px] font-semibold text-on-surface-var hover:bg-surface transition-colors">
-                    <span class="material-symbols-outlined text-[16px]">upload_file</span> Upload CSV
-                  </button>
-                  <span id="csvFileName" class="text-[12px] text-on-surface-mute"></span>
-                  <input id="csvUpload" type="file" accept=".csv,text/csv" class="hidden" onchange="handleCsvUpload(event)"/>
-                </div>
-                <p class="text-[12px] text-on-surface-mute mt-1.5">One per line, or upload a CSV with Name/Domain columns. Takes priority over the Google Sheet if filled in.</p>
-              </label>
-            </div>
-          </div>
-
-          <!-- Step 2: Value proposition -->
-          <div>
-            <div class="flex items-center gap-2 mb-4">
-              <span class="w-5 h-5 rounded-full bg-accent/10 text-accent text-[11px] font-mono font-bold flex items-center justify-center shrink-0">2</span>
-              <span class="text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Value Proposition</span>
-              <span class="text-red-500 text-[13px]">*</span>
-            </div>
-            <textarea id="valueProp" rows="3" placeholder="e.g. Fleet Telematics — real-time driver coaching for fleets under CSA / insurance pressure."
-              class="w-full border border-outline-var rounded-xl px-4 py-3 text-[14px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-white resize-none transition-all"></textarea>
-            <p class="text-[12px] text-on-surface-mute mt-1.5">What you sell and who it's for — every account is scored against this.</p>
-          </div>
-
-          <p id="setupError" class="text-red-600 text-[13px] font-medium"></p>
-
-          <!-- Actions -->
-          <div class="flex items-center gap-3 pt-6 border-t border-outline-var">
-            <button onclick="startRun()" class="action-chip flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-xl text-[13px] font-semibold shadow-sm">
-              <span class="material-symbols-outlined text-[18px]">rocket_launch</span> Start Pipeline
-            </button>
-            <button onclick="previewSheet()" class="flex items-center gap-2 px-6 py-3 border border-outline-var text-on-surface rounded-xl text-[13px] font-semibold hover:bg-surface transition-colors">
-              <span class="material-symbols-outlined text-[18px]">preview</span> Preview Sheet
-            </button>
-          </div>
-          <div id="previewBox" class="hidden bg-surface rounded-xl p-6 overflow-auto max-h-64 custom-scrollbar"></div>
+        <div class="overflow-x-auto">
+          <table class="acct-table w-full text-left">
+            <thead>
+              <tr class="border-b border-outline-var">
+                <th class="py-2.5 px-5 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Account</th>
+                <th class="py-2.5 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Status</th>
+                <th class="py-2.5 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide text-right">Score</th>
+                <th class="py-2.5 px-5 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide text-right">Updated</th>
+              </tr>
+            </thead>
+            <tbody id="draftRows"></tbody>
+            <tbody id="accountList" class="divide-y divide-outline-var"></tbody>
+          </table>
+          <div id="acctEmpty" class="hidden p-10 text-center text-on-surface-mute text-[14px]">No accounts yet.</div>
         </div>
       </div>
 
@@ -429,59 +446,6 @@ tailwind.config = {
           </span>
         </div>
       </div>
-    </section><!-- /setupPanel -->
-
-    <!-- =====================================================
-         DASHBOARD PANEL
-         ===================================================== -->
-    <section id="dashboardPanel" class="hidden p-10 space-y-4">
-
-      <!-- Toolbar -->
-      <div class="flex items-center justify-between flex-wrap gap-3">
-        <div class="flex items-center gap-3">
-          <h1 class="text-[22px] font-bold text-on-surface">Accounts</h1>
-          <span id="progressPct" class="text-[12px] font-mono text-on-surface-mute"></span>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="px-2.5 py-1 bg-surface text-on-surface-var rounded-full text-[11px] font-mono font-semibold">Pending <b id="cntPending">0</b></span>
-          <span class="px-2.5 py-1 bg-accent/10 text-accent rounded-full text-[11px] font-mono font-semibold">Running <b id="cntRunning">0</b></span>
-          <span class="px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-[11px] font-mono font-semibold">Enriched <b id="cntEnriched">0</b></span>
-          <span class="px-2.5 py-1 bg-surface text-on-surface-var rounded-full text-[11px] font-mono font-semibold">Dropped <b id="cntDropped">0</b></span>
-          <span class="px-2.5 py-1 bg-red-50 text-red-700 rounded-full text-[11px] font-mono font-semibold">Error <b id="cntError">0</b></span>
-        </div>
-      </div>
-      <div class="w-full bg-outline-var h-1 rounded-full overflow-hidden">
-        <div id="progressBar" class="bg-accent h-full transition-all duration-700 rounded-full" style="width:0%"></div>
-      </div>
-
-      <!-- Account table -->
-      <div class="bg-white border border-outline-var rounded-2xl overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-3 border-b border-outline-var gap-3">
-          <div class="flex items-center gap-2 flex-1">
-            <div class="relative flex-1 max-w-xs">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-mute text-[18px]">search</span>
-              <input id="acctSearch" type="text" placeholder="Search accounts…" oninput="filterAccounts()"
-                class="w-full pl-9 pr-3 py-2 border border-outline-var rounded-lg text-[13px] focus:ring-2 focus:ring-accent/30 focus:border-accent outline-none bg-surface transition-all"/>
-            </div>
-            <span id="statusFilterChip" class="hidden items-center gap-1.5 pl-3 pr-1.5 py-1.5 bg-accent/10 text-accent rounded-full text-[12px] font-semibold"></span>
-          </div>
-          <span id="acctCount" class="text-[11px] font-mono text-on-surface-mute shrink-0"></span>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left">
-            <thead>
-              <tr class="border-b border-outline-var">
-                <th class="py-3 px-5 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Account</th>
-                <th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide">Status</th>
-                <th class="py-3 px-3 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide text-right">Score</th>
-                <th class="py-3 px-5 text-[11px] font-mono font-semibold text-on-surface-mute uppercase tracking-wide text-right">Updated</th>
-              </tr>
-            </thead>
-            <tbody id="accountList" class="divide-y divide-outline-var"></tbody>
-          </table>
-          <div id="acctEmpty" class="hidden p-10 text-center text-on-surface-mute text-[14px]">No accounts yet.</div>
-        </div>
-      </div>
     </section><!-- /dashboardPanel -->
 
     <!-- =====================================================
@@ -494,7 +458,7 @@ tailwind.config = {
         </div>
         <h2 id="comingSoonTitle" class="text-[28px] font-black text-on-surface mb-3"></h2>
         <p class="text-[15px] text-on-surface-var leading-relaxed">This section is being built. Run the pipeline first — accounts you enrich will populate views here.</p>
-        <button onclick="showView('setup')" class="mt-8 px-6 py-3 bg-brand text-white rounded-xl text-[13px] font-semibold">
+        <button onclick="showView('dashboard')" class="mt-8 px-6 py-3 bg-brand text-white rounded-xl text-[13px] font-semibold">
           Go to Pipeline
         </button>
       </div>
@@ -868,7 +832,6 @@ let selectedAccountId = null;
 // ── Navigation ─────────────────────────────────────────────────────────────────
 const NAV_MAP = {
   analytics:    'navAnalytics',
-  setup:        'navSetup',
   dashboard:    'navDashboard',
   intelligence: 'navIntelligence',
   stakeholders: 'navStakeholders',
@@ -882,7 +845,6 @@ function showView(view) {
   if (view !== 'dashboard') closeDetail();
   const isComingSoon = view in COMING_SOON;
   document.getElementById('analyticsPanel').classList.toggle('hidden', view !== 'analytics');
-  document.getElementById('setupPanel').classList.toggle('hidden', view !== 'setup');
   document.getElementById('dashboardPanel').classList.toggle('hidden', view !== 'dashboard');
   document.getElementById('settingsPanel').classList.toggle('hidden', view !== 'settings');
   document.getElementById('intelligencePanel').classList.toggle('hidden', view !== 'intelligence');
@@ -1065,8 +1027,8 @@ function appendChatMsg(role, text, isHtml) {
 
 function handleChatCommand(cmd) {
   if (cmd.includes('start') || cmd.includes('run')) {
-    appendChatMsg('agent', 'Opening pipeline setup. Fill in the Sheet ID and value prop, then click <b>Start Pipeline</b>.', true);
-    closeChat(); showView('setup');
+    appendChatMsg('agent', 'Opening the accounts table. Add a row or two, set what you\'re selling, then click <b>Enrich</b>.', true);
+    closeChat(); showView('dashboard');
   } else if (cmd.includes('status')) {
     if (currentRunId) {
       apiFetch(`/api/runs/${currentRunId}`).then(r => r.json()).then(run => {
@@ -1076,8 +1038,8 @@ function handleChatCommand(cmd) {
       appendChatMsg('agent', 'No active run. Say <b>start a run</b> to begin.', true);
     }
   } else if (cmd.includes('preview') || cmd.includes('sheet')) {
-    appendChatMsg('agent', 'Opening setup panel. Click <b>Preview Sheet</b> to see your accounts.', true);
-    closeChat(); showView('setup');
+    appendChatMsg('agent', 'Opening the accounts table. Click <b>Import from Google Sheet</b> to pull rows in.', true);
+    closeChat(); showView('dashboard');
   } else if (cmd.includes('cancel')) {
     cancelRun();
     appendChatMsg('agent', 'Cancellation request sent.');
@@ -1097,6 +1059,181 @@ function parseManualDomains(raw) {
   });
 }
 
+// ── Draft rows (unsubmitted, editable spreadsheet rows) ─────────────────────
+let draftRows = [];
+let draftIdCounter = 0;
+let isRunActive = false;
+
+function saveDraftsToStorage() {
+  try { localStorage.setItem('ie_draft_rows', JSON.stringify(draftRows)); } catch (e) { /* ignore */ }
+}
+
+function loadDraftsFromStorage() {
+  try {
+    const raw = localStorage.getItem('ie_draft_rows');
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (Array.isArray(parsed) && parsed.length) {
+      draftRows = parsed;
+      draftIdCounter = Math.max(0, ...draftRows.map(r => r.localId || 0));
+    }
+  } catch (e) { /* ignore */ }
+  ensureTrailingBlankDraftRow();
+}
+
+function ensureTrailingBlankDraftRow() {
+  const last = draftRows[draftRows.length - 1];
+  if (!last || last.name || last.domain) {
+    draftRows.push({ localId: ++draftIdCounter, name: '', domain: '' });
+  }
+}
+
+function addDraftRow() {
+  ensureTrailingBlankDraftRow();
+  renderDraftRows();
+  const inputs = document.querySelectorAll('#draftRows input[data-field="name"]');
+  const lastInput = inputs[inputs.length - 1];
+  if (lastInput) lastInput.focus();
+}
+
+function removeDraftRow(localId) {
+  draftRows = draftRows.filter(r => r.localId !== localId);
+  ensureTrailingBlankDraftRow();
+  renderDraftRows();
+  saveDraftsToStorage();
+}
+
+function updateDraftField(localId, field, value) {
+  const row = draftRows.find(r => r.localId === localId);
+  if (!row) return;
+  row[field] = value;
+  saveDraftsToStorage();
+  const isLast = draftRows[draftRows.length - 1]?.localId === localId;
+  if (isLast && (row.name || row.domain)) {
+    // typing filled the trailing blank row — add a fresh one below, then restore focus
+    ensureTrailingBlankDraftRow();
+    renderDraftRows();
+    const input = document.querySelector(`.cell-input[data-local-id="${localId}"][data-field="${field}"]`);
+    if (input) { input.focus(); const v = input.value; input.value = ''; input.value = v; }
+  } else {
+    setEnrichButtonState();
+  }
+}
+
+function clearDraftRows() {
+  draftRows = [];
+  draftIdCounter = 0;
+  ensureTrailingBlankDraftRow();
+  renderDraftRows();
+  saveDraftsToStorage();
+}
+
+function importAccountsIntoDrafts(list) {
+  const newOnes = (list || [])
+    .map(a => ({ name: (a.name || '').trim(), domain: (a.domain || '').trim() }))
+    .filter(a => a.name || a.domain);
+  if (!newOnes.length) return;
+  draftRows = draftRows.filter(r => r.name || r.domain); // drop trailing blank row before appending
+  newOnes.forEach(a => draftRows.push({ localId: ++draftIdCounter, ...a }));
+  ensureTrailingBlankDraftRow();
+  renderDraftRows();
+  saveDraftsToStorage();
+}
+
+function handleDraftPaste(event, localId, field) {
+  const text = (event.clipboardData || window.clipboardData).getData('text');
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const looksLikeBatch = lines.length > 1 || (field === 'name' && lines.length === 1 && lines[0].includes(','));
+  if (!looksLikeBatch) return; // let native single-value paste happen untouched
+  event.preventDefault();
+  const parsed = parseManualDomains(text);
+  if (!parsed.length) return;
+
+  const idx = draftRows.findIndex(r => r.localId === localId);
+  if (idx === -1) return;
+  const row = draftRows[idx];
+  const rowEmpty = !row.name && !row.domain;
+  let insertAt = idx + 1;
+
+  if (rowEmpty) {
+    row.name = parsed[0].name;
+    row.domain = parsed[0].domain;
+    parsed.slice(1).forEach(p => draftRows.splice(insertAt++, 0, { localId: ++draftIdCounter, ...p }));
+  } else {
+    parsed.forEach(p => draftRows.splice(insertAt++, 0, { localId: ++draftIdCounter, ...p }));
+  }
+  ensureTrailingBlankDraftRow();
+  renderDraftRows();
+  saveDraftsToStorage();
+}
+
+function renderDraftRows() {
+  const tbody = document.getElementById('draftRows');
+  tbody.innerHTML = draftRows.map(r => {
+    const hasContent = r.name || r.domain;
+    return `
+    <tr class="draft-row border-b border-outline-var">
+      <td class="py-1 px-5">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-outline-var/50 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-on-surface-mute text-[16px]">add_business</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <input class="cell-input font-semibold block w-full" data-local-id="${r.localId}" data-field="name" placeholder="Company name"
+              value="${escHtml(r.name)}" oninput="updateDraftField(${r.localId}, 'name', this.value)"
+              onpaste="handleDraftPaste(event, ${r.localId}, 'name')"/>
+            <input class="cell-input font-mono text-[11px] block w-full -mt-1" data-local-id="${r.localId}" data-field="domain" placeholder="domain.com"
+              value="${escHtml(r.domain)}" oninput="updateDraftField(${r.localId}, 'domain', this.value)"
+              onpaste="handleDraftPaste(event, ${r.localId}, 'domain')"/>
+          </div>
+        </div>
+      </td>
+      <td class="py-1 px-3">
+        ${hasContent ? `<button type="button" class="draft-remove-btn flex items-center gap-1 p-1 rounded hover:bg-outline-var text-on-surface-mute" onclick="removeDraftRow(${r.localId})" title="Remove row"><span class="material-symbols-outlined text-[16px]">close</span></button>` : ''}
+      </td>
+      <td class="py-1 px-3 text-right"><span class="text-on-surface-var text-[11px] font-mono">—</span></td>
+      <td class="py-1 px-5 text-right"><span class="text-on-surface-var text-[11px] font-mono">—</span></td>
+    </tr>`;
+  }).join('');
+  setEnrichButtonState();
+  updateAcctEmptyState();
+}
+
+function setEnrichButtonState() {
+  const btn = document.getElementById('enrichBtn');
+  const label = document.getElementById('enrichBtnLabel');
+  if (!btn || !label) return;
+  const nonBlank = draftRows.filter(r => r.name.trim() || r.domain.trim()).length;
+  if (isRunActive) {
+    btn.disabled = true;
+    label.textContent = 'Enriching…';
+  } else {
+    btn.disabled = nonBlank === 0;
+    label.textContent = nonBlank > 0 ? `Enrich ${nonBlank}` : 'Enrich';
+  }
+}
+
+function toggleSheetImport() {
+  document.getElementById('sheetImportRow').classList.toggle('hidden');
+}
+
+async function importFromSheet() {
+  const sheetId = document.getElementById('sheetId').value.trim();
+  const errEl = document.getElementById('setupError');
+  errEl.textContent = '';
+  try {
+    const url = '/api/sheets/preview' + (sheetId ? `?sheet_id=${encodeURIComponent(sheetId)}` : '');
+    const res = await apiFetch(url);
+    if (!res.ok) { const e = await res.json(); errEl.textContent = e.detail || 'Could not read that sheet.'; return; }
+    const data = await res.json();
+    importAccountsIntoDrafts(data.preview || []);
+    document.getElementById('sheetImportRow').classList.add('hidden');
+    if (data.total > (data.preview || []).length) {
+      errEl.textContent = `Imported the first ${data.preview.length} of ${data.total} rows — add the rest manually or via CSV.`;
+      errEl.classList.remove('text-red-600'); errEl.classList.add('text-on-surface-mute');
+    }
+  } catch(e) { errEl.textContent = 'Network error: ' + e.message; }
+}
+
 function handleCsvUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -1105,7 +1242,7 @@ function handleCsvUpload(event) {
   reader.onload = () => {
     let lines = String(reader.result).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     if (lines.length && /^\s*name\s*,/i.test(lines[0])) lines = lines.slice(1); // drop header row
-    document.getElementById('manualDomains').value = lines.join('\n');
+    importAccountsIntoDrafts(parseManualDomains(lines.join('\n')));
   };
   reader.onerror = () => {
     document.getElementById('csvFileName').textContent = 'Could not read that file.';
@@ -1113,31 +1250,32 @@ function handleCsvUpload(event) {
   reader.readAsText(file);
 }
 
-async function startRun() {
-  const sheetId = document.getElementById('sheetId').value.trim();
+async function enrichDrafts() {
   const valueProp = document.getElementById('valueProp').value.trim();
-  const manualRaw = document.getElementById('manualDomains').value.trim();
   const errEl = document.getElementById('setupError');
   errEl.textContent = '';
-  if (!valueProp) { errEl.textContent = 'Value proposition is required.'; return; }
-  const accounts = manualRaw ? parseManualDomains(manualRaw) : null;
-  if (manualRaw && accounts.length === 0) { errEl.textContent = 'Enter at least one domain.'; return; }
+  errEl.classList.remove('text-on-surface-mute'); errEl.classList.add('text-red-600');
+  const accounts = draftRows
+    .filter(r => r.name.trim() || r.domain.trim())
+    .map(r => ({ name: (r.name || r.domain).trim(), domain: (r.domain || r.name).trim() }));
+  if (!valueProp) { errEl.textContent = "Add what you're selling first."; return; }
+  if (accounts.length === 0) { errEl.textContent = 'Add at least one company to enrich.'; return; }
   try {
     const res = await apiFetch('/api/runs', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ sheet_id: sheetId || null, value_prop: valueProp, accounts })
+      body: JSON.stringify({ sheet_id: null, value_prop: valueProp, accounts })
     });
     if (!res.ok) {
       const e = await res.json();
-      errEl.textContent = e.detail === 'sheet_id is required'
-        ? 'Add a Google Sheet ID or list at least one account domain to research.'
-        : (e.detail || 'Failed to start.');
+      errEl.textContent = e.detail || 'Failed to start.';
       return;
     }
     const data = await res.json();
     currentRunId = data.run_id;
-    showView('dashboard');
+    clearDraftRows();
+    isRunActive = true;
+    setEnrichButtonState();
     setRunStatusPill('running');
     document.getElementById('cancelBtn').classList.remove('hidden');
     document.getElementById('batchLabel').classList.remove('hidden');
@@ -1147,38 +1285,31 @@ async function startRun() {
   } catch(e) { errEl.textContent = 'Network error: ' + e.message; }
 }
 
-async function previewSheet() {
-  const sheetId = document.getElementById('sheetId').value.trim();
-  const box = document.getElementById('previewBox');
-  box.classList.remove('hidden');
-  box.innerHTML = '<p class="text-[14px] text-on-surface-var">Loading…</p>';
-  try {
-    const url = '/api/sheets/preview' + (sheetId ? `?sheet_id=${encodeURIComponent(sheetId)}` : '');
-    const res = await apiFetch(url);
-    if (!res.ok) { const e = await res.json(); box.textContent = e.detail; return; }
-    const data = await res.json();
-    box.innerHTML = `<p class="text-[11px] font-mono font-semibold text-on-surface-var uppercase tracking-wide mb-3">${data.total} accounts</p>
-      <table class="w-full text-left">
-        <thead><tr class="border-b border-outline-var/20">
-          <th class="pb-2 text-[11px] font-mono text-on-surface-var px-2">Name</th>
-          <th class="pb-2 text-[11px] font-mono text-on-surface-var px-2">Domain</th>
-        </tr></thead>
-        <tbody class="divide-y divide-outline-var/10">
-          ${data.preview.map(a => `<tr>
-            <td class="py-2 px-2 text-[14px] text-on-surface">${escHtml(a.name)}</td>
-            <td class="py-2 px-2 text-[14px] text-on-surface-var">${escHtml(a.domain||'—')}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`;
-  } catch(e) { box.textContent = 'Error: ' + e.message; }
-}
-
 async function cancelRun() {
   if (!currentRunId) return;
   await apiFetch(`/api/runs/${currentRunId}`, { method: 'DELETE' });
   clearInterval(pollInterval); pollInterval = null;
+  isRunActive = false;
+  setEnrichButtonState();
   setRunStatusPill('cancelled');
   document.getElementById('cancelBtn').classList.add('hidden');
+}
+
+async function resumeActiveRunIfAny() {
+  try {
+    const runs = await apiFetch('/api/runs?limit=1').then(r => r.json());
+    const latest = runs && runs[0];
+    if (latest && latest.status === 'running') {
+      currentRunId = latest.id;
+      isRunActive = true;
+      setEnrichButtonState();
+      document.getElementById('cancelBtn').classList.remove('hidden');
+      document.getElementById('batchLabel').classList.remove('hidden');
+      document.getElementById('runIdLabel').classList.remove('hidden');
+      document.getElementById('runStatusPill').classList.remove('hidden');
+      startPolling(currentRunId);
+    }
+  } catch (e) { /* nothing to resume */ }
 }
 
 // ── Polling ───────────────────────────────────────────────────────────────────
@@ -1206,6 +1337,8 @@ async function poll(runId) {
     }
     if (run.status === 'completed' || run.status === 'cancelled') {
       clearInterval(pollInterval); pollInterval = null;
+      isRunActive = false;
+      setEnrichButtonState();
     }
   } catch(e) { /* retry on next tick */ }
 }
@@ -1293,10 +1426,10 @@ function renderAccountRows(accounts) {
     chip.innerHTML = '';
   }
   if (!accounts.length) {
-    document.getElementById('acctEmpty').classList.remove('hidden');
-    tbody.innerHTML = ''; return;
+    tbody.innerHTML = '';
+    updateAcctEmptyState();
+    return;
   }
-  document.getElementById('acctEmpty').classList.add('hidden');
   const dotCls = {pending:'dot-pending',running:'dot-running',enriched:'dot-enriched',dropped:'dot-dropped',error:'dot-error'};
   const statusLabel = {pending:'Pending',running:'Analyzing',enriched:'Enriched',dropped:'Dropped',error:'Error'};
   tbody.innerHTML = accounts.map(a => `
@@ -1323,6 +1456,20 @@ function renderAccountRows(accounts) {
       </td>
       <td class="py-3 px-5 text-right text-[11px] font-mono text-on-surface-mute">${timeAgo(a.updated_at)}</td>
     </tr>`).join('');
+  updateAcctEmptyState();
+}
+
+function updateAcctEmptyState() {
+  // The draft section always has a visible blank "add a company" row, so a
+  // separate empty-state message would just be redundant clutter — this is
+  // only useful for the genuinely different case of a search/filter that
+  // matched nothing among already-submitted accounts.
+  const el = document.getElementById('acctEmpty');
+  if (!el) return;
+  const hasFilter = !!((document.getElementById('acctSearch')?.value || '').trim() || statusFilter || runFilter);
+  const matchedNothing = hasFilter && allAccounts.length > 0 && filteredAccounts().length === 0;
+  el.textContent = 'No accounts match your search.';
+  el.classList.toggle('hidden', !matchedNothing);
 }
 
 function closeDetail() {
@@ -1870,6 +2017,9 @@ function renderLibrary() {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 showView('analytics'); // sets Analytics as active nav
 loadAllAccounts(); // populate the Accounts tab with real historical data, not just the active run
+loadDraftsFromStorage();
+renderDraftRows();
+resumeActiveRunIfAny(); // don't silently forget an in-flight run on refresh
 appendChatMsg('agent', 'Hello! I\'m your AI orchestrator. Tell me to <b>start a run</b>, <b>preview the sheet</b>, or ask about any account.', true);
 </script>
 </body>
